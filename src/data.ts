@@ -1,0 +1,186 @@
+import { Resident, Admin, MaintenanceRecord, Complaint, Booking, Amenity } from './types';
+
+export const initialResidents: Resident[] = [
+  { resident_id: 'R001', name: 'Rahul Sharma', tower: 'A', floor: 1, flat: 'A101', email: 'rahul101@gvsociety.com', phone: '9000000001', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R002', name: 'Priya Mehta', tower: 'A', floor: 1, flat: 'A102', email: 'priya102@gvsociety.com', phone: '9000000002', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R003', name: 'Amit Patil', tower: 'A', floor: 1, flat: 'A103', email: 'amit103@gvsociety.com', phone: '9000000003', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R004', name: 'Sneha Joshi', tower: 'A', floor: 1, flat: 'A104', email: 'sneha104@gvsociety.com', phone: '9000000004', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R005', name: 'Rohit Verma', tower: 'A', floor: 2, flat: 'A201', email: 'rohit201@gvsociety.com', phone: '9000000005', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R006', name: 'Kajal Shah', tower: 'A', floor: 2, flat: 'A202', email: 'kajal202@gvsociety.com', phone: '9000000006', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R007', name: 'Vikram Singh', tower: 'A', floor: 2, flat: 'A203', email: 'vikram203@gvsociety.com', phone: '9000000007', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R008', name: 'Pooja Desai', tower: 'A', floor: 2, flat: 'A204', email: 'pooja204@gvsociety.com', phone: '9000000008', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R009', name: 'Anil Gupta', tower: 'A', floor: 3, flat: 'A301', email: 'anil301@gvsociety.com', phone: '9000000009', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R010', name: 'Neha Kulkarni', tower: 'A', floor: 3, flat: 'A302', email: 'neha302@gvsociety.com', phone: '9000000010', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R011', name: 'Manoj Nair', tower: 'A', floor: 3, flat: 'A303', email: 'manoj303@gvsociety.com', phone: '9000000011', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R012', name: 'Deepa Iyer', tower: 'A', floor: 3, flat: 'A304', email: 'deepa304@gvsociety.com', phone: '9000000012', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R013', name: 'Arjun Reddy', tower: 'A', floor: 4, flat: 'A401', email: 'arjun401@gvsociety.com', phone: '9000000013', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R014', name: 'Swati Rao', tower: 'A', floor: 4, flat: 'A402', email: 'swati402@gvsociety.com', phone: '9000000014', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R015', name: 'Sanjay Mishra', tower: 'A', floor: 4, flat: 'A403', email: 'sanjay403@gvsociety.com', phone: '9000000015', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R016', name: 'Ritu Singh', tower: 'A', floor: 4, flat: 'A404', email: 'ritu404@gvsociety.com', phone: '9000000016', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R017', name: 'Kiran More', tower: 'A', floor: 5, flat: 'A501', email: 'kiran501@gvsociety.com', phone: '9000000017', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R018', name: 'Sonal More', tower: 'A', floor: 5, flat: 'A502', email: 'sonal502@gvsociety.com', phone: '9000000018', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R019', name: 'Vishal More', tower: 'A', floor: 5, flat: 'A503', email: 'vishal503@gvsociety.com', phone: '9000000019', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R020', name: 'Anjali More', tower: 'A', floor: 5, flat: 'A504', email: 'anjali504@gvsociety.com', phone: '9000000020', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R021', name: 'Suresh Kumar', tower: 'B', floor: 1, flat: 'B101', email: 'suresh101@gvsociety.com', phone: '9000000021', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R022', name: 'Meena Kumar', tower: 'B', floor: 1, flat: 'B102', email: 'meena102@gvsociety.com', phone: '9000000022', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R023', name: 'Ramesh Kumar', tower: 'B', floor: 1, flat: 'B103', email: 'ramesh103@gvsociety.com', phone: '9000000023', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R024', name: 'Sunita Kumar', tower: 'B', floor: 1, flat: 'B104', email: 'sunita104@gvsociety.com', phone: '9000000024', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R025', name: 'Ganesh Shinde', tower: 'B', floor: 2, flat: 'B201', email: 'ganesh201@gvsociety.com', phone: '9000000025', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R026', name: 'Lata Shinde', tower: 'B', floor: 2, flat: 'B202', email: 'lata202@gvsociety.com', phone: '9000000026', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R027', name: 'Mahesh Shinde', tower: 'B', floor: 2, flat: 'B203', email: 'mahesh203@gvsociety.com', phone: '9000000027', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R028', name: 'Savita Shinde', tower: 'B', floor: 2, flat: 'B204', email: 'savita204@gvsociety.com', phone: '9000000028', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R029', name: 'Prakash Deshmukh', tower: 'B', floor: 3, flat: 'B301', email: 'prakash301@gvsociety.com', phone: '9000000029', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R030', name: 'Vidya Deshmukh', tower: 'B', floor: 3, flat: 'B302', email: 'vidya302@gvsociety.com', phone: '9000000030', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R031', name: 'Sandeep Deshmukh', tower: 'B', floor: 3, flat: 'B303', email: 'sandeep303@gvsociety.com', phone: '9000000031', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R032', name: 'Pallavi Deshmukh', tower: 'B', floor: 3, flat: 'B304', email: 'pallavi304@gvsociety.com', phone: '9000000032', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R033', name: 'Ajay Jadhav', tower: 'B', floor: 4, flat: 'B401', email: 'ajay401@gvsociety.com', phone: '9000000033', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R034', name: 'Kavita Jadhav', tower: 'B', floor: 4, flat: 'B402', email: 'kavita402@gvsociety.com', phone: '9000000034', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R035', name: 'Vijay Jadhav', tower: 'B', floor: 4, flat: 'B403', email: 'vijay403@gvsociety.com', phone: '9000000035', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R036', name: 'Usha Jadhav', tower: 'B', floor: 4, flat: 'B404', email: 'usha404@gvsociety.com', phone: '9000000036', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R037', name: 'Pradeep Kadam', tower: 'B', floor: 5, flat: 'B501', email: 'pradeep501@gvsociety.com', phone: '9000000037', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R038', name: 'Varsha Kadam', tower: 'B', floor: 5, flat: 'B502', email: 'varsha502@gvsociety.com', phone: '9000000038', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R039', name: 'Nitin Kadam', tower: 'B', floor: 5, flat: 'B503', email: 'nitin503@gvsociety.com', phone: '9000000039', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R040', name: 'Shubhangi Kadam', tower: 'B', floor: 5, flat: 'B504', email: 'shubhangi504@gvsociety.com', phone: '9000000040', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R041', name: 'Satish Gaikwad', tower: 'C', floor: 1, flat: 'C101', email: 'satish101@gvsociety.com', phone: '9000000041', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R042', name: 'Asha Gaikwad', tower: 'C', floor: 1, flat: 'C102', email: 'asha102@gvsociety.com', phone: '9000000042', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R043', name: 'Sunil Gaikwad', tower: 'C', floor: 1, flat: 'C103', email: 'sunil103@gvsociety.com', phone: '9000000043', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R044', name: 'Jyoti Gaikwad', tower: 'C', floor: 1, flat: 'C104', email: 'jyoti104@gvsociety.com', phone: '9000000044', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R045', name: 'Ashok Sawant', tower: 'C', floor: 2, flat: 'C201', email: 'ashok201@gvsociety.com', phone: '9000000045', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R046', name: 'Rekha Sawant', tower: 'C', floor: 2, flat: 'C202', email: 'rekha202@gvsociety.com', phone: '9000000046', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R047', name: 'Sanjay Sawant', tower: 'C', floor: 2, flat: 'C203', email: 'sanjay203@gvsociety.com', phone: '9000000047', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R048', name: 'Anita Sawant', tower: 'C', floor: 2, flat: 'C204', email: 'anita204@gvsociety.com', phone: '9000000048', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R049', name: 'Dilip Pawar', tower: 'C', floor: 3, flat: 'C301', email: 'dilip301@gvsociety.com', phone: '9000000049', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R050', name: 'Sunita Pawar', tower: 'C', floor: 3, flat: 'C302', email: 'sunita302@gvsociety.com', phone: '9000000050', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R051', name: 'Amol Pawar', tower: 'C', floor: 3, flat: 'C303', email: 'amol303@gvsociety.com', phone: '9000000051', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R052', name: 'Sneha Pawar', tower: 'C', floor: 3, flat: 'C304', email: 'sneha304@gvsociety.com', phone: '9000000052', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R053', name: 'Kishor Thorat', tower: 'C', floor: 4, flat: 'C401', email: 'kishor401@gvsociety.com', phone: '9000000053', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R054', name: 'Megha Thorat', tower: 'C', floor: 4, flat: 'C402', email: 'megha402@gvsociety.com', phone: '9000000054', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R055', name: 'Rahul Thorat', tower: 'C', floor: 4, flat: 'C403', email: 'rahul403@gvsociety.com', phone: '9000000055', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R056', name: 'Pooja Thorat', tower: 'C', floor: 4, flat: 'C404', email: 'pooja404@gvsociety.com', phone: '9000000056', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R057', name: 'Santosh Mane', tower: 'C', floor: 5, flat: 'C501', email: 'santosh501@gvsociety.com', phone: '9000000057', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R058', name: 'Sangeeta Mane', tower: 'C', floor: 5, flat: 'C502', email: 'sangeeta502@gvsociety.com', phone: '9000000058', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R059', name: 'Vikas Mane', tower: 'C', floor: 5, flat: 'C503', email: 'vikas503@gvsociety.com', phone: '9000000059', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R060', name: 'Rupali Mane', tower: 'C', floor: 5, flat: 'C504', email: 'rupali504@gvsociety.com', phone: '9000000060', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R061', name: 'Arvind Kulkarni', tower: 'D', floor: 1, flat: 'D101', email: 'arvind101@gvsociety.com', phone: '9000000061', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R062', name: 'Anjali Kulkarni', tower: 'D', floor: 1, flat: 'D102', email: 'anjali102@gvsociety.com', phone: '9000000062', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R063', name: 'Sagar Kulkarni', tower: 'D', floor: 1, flat: 'D103', email: 'sagar103@gvsociety.com', phone: '9000000063', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R064', name: 'Deepa Kulkarni', tower: 'D', floor: 1, flat: 'D104', email: 'deepa104@gvsociety.com', phone: '9000000064', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R065', name: 'Balu Survase', tower: 'D', floor: 2, flat: 'D201', email: 'balu201@gvsociety.com', phone: '9000000065', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R066', name: 'Laxmi Survase', tower: 'D', floor: 2, flat: 'D202', email: 'laxmi202@gvsociety.com', phone: '9000000066', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R067', name: 'Ravindra Survase', tower: 'D', floor: 2, flat: 'D203', email: 'ravindra203@gvsociety.com', phone: '9000000067', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R068', name: 'Balaji Survase', tower: 'D', floor: 2, flat: 'D204', email: 'balaji204@gvsociety.com', phone: '9000000068', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R069', name: 'Sudhir Deshpande', tower: 'D', floor: 3, flat: 'D301', email: 'sudhir301@gvsociety.com', phone: '9000000069', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R070', name: 'Seema Deshpande', tower: 'D', floor: 3, flat: 'D302', email: 'seema302@gvsociety.com', phone: '9000000070', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R071', name: 'Abhay Deshpande', tower: 'D', floor: 3, flat: 'D303', email: 'abhay303@gvsociety.com', phone: '9000000071', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R072', name: 'Prachi Deshpande', tower: 'D', floor: 3, flat: 'D304', email: 'prachi304@gvsociety.com', phone: '9000000072', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R073', name: 'Milind Joshi', tower: 'D', floor: 4, flat: 'D401', email: 'milind401@gvsociety.com', phone: '9000000073', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R074', name: 'Mansi Joshi', tower: 'D', floor: 4, flat: 'D402', email: 'mansi402@gvsociety.com', phone: '9000000074', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R075', name: 'Sameer Joshi', tower: 'D', floor: 4, flat: 'D403', email: 'sameer403@gvsociety.com', phone: '9000000075', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R076', name: 'Tanvi Joshi', tower: 'D', floor: 4, flat: 'D404', email: 'tanvi404@gvsociety.com', phone: '9000000076', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R077', name: 'Pratik Patil', tower: 'D', floor: 5, flat: 'D501', email: 'pratik501@gvsociety.com', phone: '9000000077', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R078', name: 'Snehal Patil', tower: 'D', floor: 5, flat: 'D502', email: 'snehal502@gvsociety.com', phone: '9000000078', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R079', name: 'Rohit Patil', tower: 'D', floor: 5, flat: 'D503', email: 'rohit503@gvsociety.com', phone: '9000000079', society_id: 'GV2026', password: 'resident123' },
+  { resident_id: 'R080', name: 'Pooja Patil', tower: 'D', floor: 5, flat: 'D504', email: 'pooja504@gvsociety.com', phone: '9000000080', society_id: 'GV2026', password: 'resident123' },
+];
+
+export const initialAdmins: Admin[] = [
+  { id: 'A001', admin_id: 'A001', name: 'Amit Sharma', email: 'admin@gvsociety.com', phone: '9001000001', role: 'admin', society_id: 'GV2026', password: 'admin123' },
+  { id: 'A002', admin_id: 'A002', name: 'Neha Kulkarni', email: 'manager@gvsociety.com', phone: '9001000002', role: 'admin', society_id: 'GV2026', password: 'admin123' },
+  { id: 'A003', admin_id: 'A003', name: 'Rohit Patil', email: 'maintenance@gvsociety.com', phone: '9001000003', role: 'admin', society_id: 'GV2026', password: 'admin123' },
+];
+
+export const initialMaintenance: MaintenanceRecord[] = Array.from({ length: 80 }, (_, i) => {
+  const id = `M${String(i + 1).padStart(3, '0')}`;
+  const resident_id = `R${String(i + 1).padStart(3, '0')}`;
+  const resident = initialResidents[i];
+  return {
+    id,
+    maintenance_id: id,
+    resident_id,
+    resident_name: resident.name,
+    flat_no: resident.flat,
+    tower: resident.tower,
+    month: 'March 2026',
+    amount: 2500,
+    due_date: '2026-03-31',
+    status: 'Unpaid',
+    society_id: 'GV2026'
+  };
+});
+
+export const initialComplaints: Complaint[] = [
+  { id: 'C001', complaint_id: 'C001', resident_id: 'R001', name: 'Rahul Sharma', tower: 'A', flat: 'A101', category: 'Water Supply Issue', description: 'Water leakage in kitchen', date: '2026-03-10', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C002', complaint_id: 'C002', resident_id: 'R002', name: 'Priya Mehta', tower: 'A', flat: 'A102', category: 'Electricity Issue', description: 'Power fluctuation in living room', date: '2026-03-11', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C003', complaint_id: 'C003', resident_id: 'R003', name: 'Amit Patil', tower: 'A', flat: 'A103', category: 'Lift Issue', description: 'Door hinge broken', date: '2026-03-12', status: 'In Progress', society_id: 'GV2026' },
+  { id: 'C004', complaint_id: 'C004', resident_id: 'R004', name: 'Sneha Joshi', tower: 'A', flat: 'A104', category: 'Cleanliness Issue', description: 'Common area not cleaned', date: '2026-03-13', status: 'Done', society_id: 'GV2026' },
+];
+
+export const initialBookings: Booking[] = [
+  { 
+    id: 'B001', 
+    booking_id: 'B001',
+    resident_id: 'R001', 
+    name: 'Rahul Sharma',
+    tower: 'A',
+    flat: 'A101',
+    amenity_name: 'Clubhouse Hall', 
+    amenity_type: 'Indoor Hall',
+    event_name: 'Birthday Party',
+    booking_date: '2026-04-05', 
+    start_time: '10:00 AM', 
+    end_time: '02:00 PM', 
+    charges: 2500,
+    status: 'Approved', 
+    society_id: 'GV2026' 
+  },
+  { 
+    id: 'B002', 
+    booking_id: 'B002',
+    resident_id: 'R002', 
+    name: 'Priya Mehta',
+    tower: 'A',
+    flat: 'A102',
+    amenity_name: 'Garden Hall', 
+    amenity_type: 'Outdoor Hall',
+    event_name: 'Family Gathering',
+    booking_date: '2026-04-06', 
+    start_time: '06:00 AM', 
+    end_time: '08:00 AM', 
+    charges: 1500,
+    status: 'Pending', 
+    society_id: 'GV2026' 
+  },
+];
+
+export const initialAmenities: Amenity[] = [
+  {
+    amenity_id: 'AM001',
+    name: 'Clubhouse Hall',
+    description: 'Indoor Hall',
+    price: 2500,
+    base_hours: 4,
+    extra_hour_charge: 500,
+    facilities: 'AC Hall, 30 Chairs, Tables, Lighting, Washroom',
+    society_id: 'GV2026'
+  },
+  {
+    amenity_id: 'AM002',
+    name: 'Garden Area',
+    description: 'Outdoor Area',
+    price: 1500,
+    base_hours: 4,
+    extra_hour_charge: 300,
+    facilities: 'Open Garden Space, Decorative Lights, Small Stage',
+    society_id: 'GV2026'
+  },
+  {
+    amenity_id: 'AM003',
+    name: 'Community Hall',
+    description: 'Indoor Hall',
+    price: 3000,
+    base_hours: 5,
+    extra_hour_charge: 600,
+    facilities: 'Large Hall, 50 Chairs, Stage, Sound System, Lighting',
+    society_id: 'GV2026'
+  }
+];

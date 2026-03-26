@@ -12,7 +12,8 @@ import {
   Clock,
   ExternalLink,
   Plus,
-  Edit
+  Edit,
+  ArrowLeft
 } from 'lucide-react';
 import { User, Resident, MaintenanceRecord, Complaint, Booking, Amenity } from '../types';
 import { societyService } from '../lib/societyService';
@@ -297,6 +298,10 @@ export default function AdminDashboard({
       });
       fetchAmenities();
     } catch (error: any) {
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        setDbError('The amenities table does not exist in your database.');
+        setShowSqlModal(true);
+      }
       alert('Failed to update amenity: ' + error.message);
     } finally {
       setUpdating(null);
@@ -709,9 +714,18 @@ export default function AdminDashboard({
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-blue-50 overflow-hidden">
             <div className="p-8 border-b border-blue-50 flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-black text-gray-800">Amenity Bookings</h3>
-                <p className="text-gray-500">Manage and approve resident amenity requests</p>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setActiveTab('dashboard')}
+                  className="p-2 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
+                  title="Back to Dashboard"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h3 className="text-2xl font-black text-gray-800">Amenity Bookings</h3>
+                  <p className="text-gray-500">Manage and approve resident amenity requests</p>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <button 
@@ -1005,15 +1019,24 @@ export default function AdminDashboard({
       {/* Booking Edit Modal */}
       {showBookingEditModal && editingBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-black">Update Booking Times</h3>
-                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">
-                  {editingBooking.amenity_name} - {editingBooking.booking_date}
-                </p>
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setShowBookingEditModal(false)}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="Back"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">Update Booking Times</h3>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                    {editingBooking.amenity_name} - {editingBooking.booking_date}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setShowBookingEditModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={() => setShowBookingEditModal(false)} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -1065,13 +1088,22 @@ export default function AdminDashboard({
       {/* Amenity Price Management Modal */}
       {showAmenityForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-black">Amenity Price Management</h3>
-                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">Set and update booking amounts</p>
+          <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setShowAmenityForm(false)}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                  title="Back"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <div>
+                  <h3 className="text-xl font-black text-gray-800">Amenity Price Management</h3>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Set and update booking amounts</p>
+                </div>
               </div>
-              <button onClick={() => setShowAmenityForm(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+              <button onClick={() => setShowAmenityForm(false)} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>

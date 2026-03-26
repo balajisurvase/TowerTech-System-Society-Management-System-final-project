@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, Building2, Eye, EyeOff, ShieldCheck, Users, X, UserPlus } from 'lucide-react';
 import { User, Role } from '../types';
-import { supabase } from '../lib/supabase';
 import { societyService } from '../lib/societyService';
 import RegisterSociety from './RegisterSociety';
 
@@ -46,155 +45,20 @@ export default function Login({ onLogin }: LoginProps) {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      if (role === 'admin') {
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin')
-          .select('*')
-          .eq('admin_id', loginId)
-          .eq('password', password)
-          .eq('society_id', societyId)
-          .limit(1);
-
-        if (adminError) {
-          console.error('Admin Login Error (with society_id):', adminError);
-          // Fallback to check without society_id if the column doesn't exist
-          const { data: retryData, error: retryError } = await supabase
-            .from('admin')
-            .select('*')
-            .eq('admin_id', loginId)
-            .eq('password', password)
-            .limit(1);
-          
-          if (retryError) throw new Error(`Database error: ${retryError.message}`);
-          if (!retryData || retryData.length === 0) throw new Error('Invalid Administrator ID or Password');
-          
-          const data = retryData[0];
-          onLogin({
-            id: data.id,
-            admin_id: data.admin_id,
-            name: data.name,
-            email: data.email || '',
-            phone: data.phone || '',
-            role: data.role || 'admin',
-            society_id: data.society_id
-          });
-          return;
-        }
-
-        if (!adminData || adminData.length === 0) {
-          // Try one more time without society_id just in case
-          const { data: retryData } = await supabase
-            .from('admin')
-            .select('*')
-            .eq('admin_id', loginId)
-            .eq('password', password)
-            .limit(1);
-          
-          if (retryData && retryData.length > 0) {
-            const data = retryData[0];
-            onLogin({
-              id: data.id,
-              admin_id: data.admin_id,
-              name: data.name,
-              email: data.email || '',
-              phone: data.phone || '',
-              role: data.role || 'admin',
-              society_id: data.society_id
-            });
-            return;
-          }
-          throw new Error('Invalid Administrator ID or Password');
-        }
-
-        const data = adminData[0];
-        onLogin({
-          id: data.id,
-          admin_id: data.admin_id,
-          name: data.name,
-          email: data.email || '',
-          phone: data.phone || '',
-          role: data.role || 'admin',
-          society_id: data.society_id
-        });
-      } else {
-        const { data: residentData, error: residentError } = await supabase
-          .from('resident')
-          .select('*')
-          .eq('resident_id', loginId)
-          .eq('password', password)
-          .eq('society_id', societyId)
-          .limit(1);
-
-        if (residentError) {
-          console.error('Resident Login Error (with society_id):', residentError);
-          // Fallback to check without society_id
-          const { data: retryData, error: retryError } = await supabase
-            .from('resident')
-            .select('*')
-            .eq('resident_id', loginId)
-            .eq('password', password)
-            .limit(1);
-          
-          if (retryError) throw new Error(`Database error: ${retryError.message}`);
-          if (!retryData || retryData.length === 0) throw new Error('Invalid Resident ID or Password');
-
-          const data = retryData[0];
-          onLogin({
-            id: data.resident_id,
-            resident_id: data.resident_id,
-            name: data.name,
-            email: data.email || '',
-            phone: data.phone || '',
-            role: data.role || 'resident',
-            society_id: data.society_id,
-            flat: data.flat,
-            tower: data.tower
-          });
-          return;
-        }
-
-        if (!residentData || residentData.length === 0) {
-          // Try one more time without society_id
-          const { data: retryData } = await supabase
-            .from('resident')
-            .select('*')
-            .eq('resident_id', loginId)
-            .eq('password', password)
-            .limit(1);
-          
-          if (retryData && retryData.length > 0) {
-            const data = retryData[0];
-            onLogin({
-              id: data.resident_id,
-              resident_id: data.resident_id,
-              name: data.name,
-              email: data.email || '',
-              phone: data.phone || '',
-              role: data.role || 'resident',
-              society_id: data.society_id,
-              flat: data.flat,
-              tower: data.tower
-            });
-            return;
-          }
-          throw new Error('Invalid Resident ID or Password');
-        }
-
-        const data = residentData[0];
-        onLogin({
-          id: data.resident_id,
-          resident_id: data.resident_id,
-          name: data.name,
-          email: data.email || '',
-          phone: data.phone || '',
-          role: data.role || 'resident',
-          society_id: data.society_id,
-          flat: data.flat,
-          tower: data.tower
-        });
-      }
+      const data = await societyService.login(role as 'admin' | 'resident', loginId, password, societyId);
+      onLogin({
+        id: data.id,
+        admin_id: data.admin_id,
+        resident_id: data.resident_id,
+        name: data.name,
+        email: data.email || '',
+        phone: data.phone || '',
+        role: data.role || (role === 'admin' ? 'admin' : 'resident'),
+        society_id: data.society_id,
+        flat: data.flat,
+        tower: data.tower
+      });
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
     } finally {
@@ -285,7 +149,7 @@ export default function Login({ onLogin }: LoginProps) {
               <Building2 className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-4xl font-bold text-blue-900 mb-4 leading-tight">
-              TowerTech-Society <br />
+              Green View Residency <br />
               <span className="text-blue-600 text-3xl">Management System</span>
             </h1>
             <p className="text-blue-700/70 text-lg">
@@ -430,7 +294,7 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
           
           <div className="mt-10 text-center text-gray-400 text-xs">
-            <p>© 2026 TowerTech-Society Management. All rights reserved.</p>
+            <p>© 2026 Green View Residency. All rights reserved.</p>
           </div>
         </div>
       </div>

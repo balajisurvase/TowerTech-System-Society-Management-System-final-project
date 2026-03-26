@@ -51,35 +51,16 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Real-time updates
+  // Real-time updates with Supabase
   useEffect(() => {
-    const complaintsSubscription = supabase
-      .channel('complaints-changes')
+    const channel = supabase
+      .channel('schema-db-changes')
       .on(
-        'postgres_changes' as any, 
-        { event: '*', table: 'complaint', schema: 'public' }, 
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    const bookingsSubscription = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes' as any, 
-        { event: '*', table: 'booking', schema: 'public' }, 
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    const maintenanceSubscription = supabase
-      .channel('maintenance-changes')
-      .on(
-        'postgres_changes' as any, 
-        { event: '*', table: 'maintenance', schema: 'public' }, 
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+        },
         () => {
           fetchData();
         }
@@ -87,9 +68,7 @@ export default function App() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(complaintsSubscription);
-      supabase.removeChannel(bookingsSubscription);
-      supabase.removeChannel(maintenanceSubscription);
+      supabase.removeChannel(channel);
     };
   }, []);
 

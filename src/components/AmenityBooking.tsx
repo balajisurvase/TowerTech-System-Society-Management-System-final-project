@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, AlertCircle, Loader2, ChevronRight } from 'lucide-react';
 import { Resident, Booking, Amenity } from '../types';
 import { societyService } from '../lib/societyService';
 
@@ -162,20 +162,51 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
               <h3 className="text-xl font-black text-gray-800">Book Amenity</h3>
               <p className="text-gray-500">Request a new reservation</p>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-8">
+              {/* Auto-filled Resident Info Section */}
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resident Information (Auto-filled)</h4>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">Name</p>
+                    <p className="font-bold text-gray-800">{resident.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">Resident ID</p>
+                    <p className="font-black text-blue-600">{resident.resident_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">Tower</p>
+                    <p className="font-bold text-gray-800">{resident.tower}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mb-1">Flat No</p>
+                    <p className="font-bold text-gray-800">{resident.flat}</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Select Amenity</label>
-                  <select
-                    name="amenity_name"
-                    value={formData.amenity_name}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold text-gray-700"
-                  >
-                    {amenitiesList.map(a => (
-                      <option key={a.amenity_id} value={a.name}>{a.name}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="amenity_name"
+                      value={formData.amenity_name}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold text-gray-700 appearance-none bg-white"
+                    >
+                      {amenitiesList.map(a => (
+                        <option key={a.amenity_id} value={a.name}>{a.name} ({a.description || 'Amenity'})</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <ChevronRight className="w-4 h-4 rotate-90" />
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Event Name</label>
@@ -184,7 +215,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
                     name="event_name"
                     value={formData.event_name}
                     onChange={handleInputChange}
-                    placeholder="e.g. Birthday Party"
+                    placeholder="e.g. Birthday Party, Meeting"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold text-gray-700"
                   />
                 </div>
@@ -195,6 +226,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
                     name="booking_date"
                     value={formData.booking_date}
                     onChange={handleInputChange}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all font-bold text-gray-700"
                   />
                 </div>

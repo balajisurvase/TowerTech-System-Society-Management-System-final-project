@@ -150,6 +150,23 @@ export const initialBookings: Booking[] = [
     status: 'Pending', 
     society_id: 'GV2026' 
   },
+  {
+    id: 'B004',
+    booking_id: 'B004',
+    resident_id: 'R005',
+    name: 'Test User',
+    tower: 'A',
+    flat: '101',
+    amenity_name: 'Clubhouse Hall',
+    amenity_type: 'Indoor Hall',
+    event_name: 'Test Event',
+    booking_date: '2026-04-15',
+    start_time: '18:00',
+    end_time: '22:00',
+    charges: 2000,
+    status: 'Pending',
+    society_id: 'GV2026'
+  },
 ];
 
 export const initialAmenities: Amenity[] = [

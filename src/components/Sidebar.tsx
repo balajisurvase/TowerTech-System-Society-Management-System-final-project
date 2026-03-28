@@ -44,8 +44,8 @@ export default function Sidebar({ isAdmin, activeTab, setActiveTab, onLogout }: 
           <Building2 className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="font-bold text-gray-800 leading-tight">Green View</h2>
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Residency</p>
+          <h2 className="font-bold text-gray-800 leading-tight">TowerTech</h2>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Society</p>
         </div>
       </div>
 

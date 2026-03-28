@@ -52,9 +52,9 @@ export default function ResidentDashboard({
       setLoadingData(true);
       try {
         const [maintenanceData, complaintsData, bookingsData] = await Promise.all([
-          societyService.getResidentMaintenance(resident.resident_id),
-          societyService.getResidentComplaints(resident.resident_id),
-          societyService.getResidentBookings(resident.resident_id)
+          societyService.getResidentMaintenance(resident.resident_id, resident.society_id),
+          societyService.getResidentComplaints(resident.resident_id, resident.society_id),
+          societyService.getResidentBookings(resident.resident_id, resident.society_id)
         ]);
         setLocalMaintenance(maintenanceData);
         setLocalComplaints(complaintsData);
@@ -76,8 +76,9 @@ export default function ResidentDashboard({
   const societyComplaints = complaints.map(c => ({
     ...c,
     name: c.resident_id === resident.resident_id ? c.name : 'Resident',
-    flat: c.resident_id === resident.resident_id ? c.flat : '***',
-    tower: c.resident_id === resident.resident_id ? c.tower : '*'
+    flat_no: c.resident_id === resident.resident_id ? c.flat_no : '***',
+    tower: c.resident_id === resident.resident_id ? c.tower : '*',
+    complaint_date: c.resident_id === resident.resident_id ? c.complaint_date : '***'
   }));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,12 +102,12 @@ export default function ResidentDashboard({
       await societyService.addComplaint({
         resident_id: resident.resident_id,
         name: resident.name,
-        flat: resident.flat,
+        flat_no: resident.flat,
         tower: resident.tower,
         category: complaintCategory,
         description,
         status: 'Pending',
-        date: new Date().toISOString().split('T')[0],
+        complaint_date: new Date().toISOString().split('T')[0],
         media,
         society_id: resident.society_id
       });
@@ -154,6 +155,7 @@ export default function ResidentDashboard({
         resident_name: resident.name,
         flat_no: resident.flat,
         tower: resident.tower,
+        floor: resident.floor,
         month: fullMonth,
         amount: 2500, // Default amount, could be dynamic
         status: 'Unpaid',
@@ -380,6 +382,7 @@ export default function ResidentDashboard({
                   <thead className="bg-blue-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
                     <tr>
                       <th className="px-8 py-4">Maintenance ID</th>
+                      <th className="px-8 py-4">Tower/Floor/Flat</th>
                       <th className="px-8 py-4">Month</th>
                       <th className="px-8 py-4">Amount</th>
                       <th className="px-8 py-4">Due Date</th>
@@ -409,6 +412,7 @@ export default function ResidentDashboard({
                           <td className="px-8 py-6 font-black text-blue-600">
                             {m.maintenance_id || (m.id ? m.id.substring(0, 8) : 'N/A')}
                           </td>
+                          <td className="px-8 py-6 text-gray-600 font-bold">T-{m.tower} / F-{m.floor} / {m.flat_no}</td>
                           <td className="px-8 py-6 font-bold text-gray-800">{m.month}</td>
                           <td className="px-8 py-6 font-black text-gray-800">₹{m.amount}</td>
                           <td className="px-8 py-6 text-gray-500">{m.due_date}</td>
@@ -529,10 +533,10 @@ export default function ResidentDashboard({
                           </span>
                           <h4 className="font-bold text-gray-800 text-lg">{c.category}</h4>
                           <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
-                            {c.tower}-{c.flat}
+                            {c.tower}-{c.flat_no}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 font-bold">BY: {c.name} • DATE: {c.date}</p>
+                        <p className="text-xs text-gray-500 font-bold">BY: {c.name} • DATE: {c.complaint_date}</p>
                       </div>
                       <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
                         c.status === 'Done' || c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' :

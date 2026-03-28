@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Resident, MaintenanceRecord, Complaint, Booking } from './types';
 import { initialResidents, initialMaintenance, initialComplaints, initialBookings } from './data';
 import { societyService } from './lib/societyService';
-import { supabase } from './lib/supabase';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import AdminDashboard from './components/AdminDashboard';
@@ -22,6 +22,16 @@ export default function App() {
   // Fetch data from Supabase
   const fetchData = async () => {
     setLoading(true);
+
+    if (!isSupabaseConfigured) {
+      setResidents(initialResidents);
+      setMaintenance(initialMaintenance);
+      setComplaints(initialComplaints);
+      setBookings(initialBookings);
+      setLoading(false);
+      return;
+    }
+
     try {
       const [resData, mainData, compData, bookingData] = await Promise.all([
         societyService.getResidents(),
@@ -53,6 +63,8 @@ export default function App() {
 
   // Real-time updates with Supabase
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -99,6 +111,20 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-stone-50">
+      {!isSupabaseConfigured && (
+        <div className="fixed top-0 left-0 right-0 bg-emerald-600 text-white px-4 py-2 text-sm z-[9999] shadow-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            <span><strong>Prototype Mode:</strong> Supabase is not connected. Using local sample data.</span>
+          </div>
+          <button 
+            onClick={() => alert('To connect Supabase:\n1. Open the "Secrets" panel in AI Studio.\n2. Add VITE_SUPABASE_URL (your project URL).\n3. Add VITE_SUPABASE_ANON_KEY (your anon key).\n4. The app will automatically sync once configured.')}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors"
+          >
+            Setup Instructions
+          </button>
+        </div>
+      )}
       <Sidebar 
         isAdmin={!!user.admin_id} 
         activeTab={activeTab} 

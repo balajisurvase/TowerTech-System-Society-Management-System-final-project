@@ -13,7 +13,8 @@ import {
   ExternalLink,
   Plus,
   Edit,
-  ArrowLeft
+  Eye,
+  Image as ImageIcon
 } from 'lucide-react';
 import { User, Resident, MaintenanceRecord, Complaint, Booking, Amenity } from '../types';
 import { societyService } from '../lib/societyService';
@@ -50,10 +51,21 @@ export default function AdminDashboard({
   const [showAmenityForm, setShowAmenityForm] = useState(false);
   const [showBookingEditModal, setShowBookingEditModal] = useState(false);
   const [showSqlModal, setShowSqlModal] = useState(false);
+  const [showEditResidentModal, setShowEditResidentModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editingResident, setEditingResident] = useState<Resident | null>(null);
   const [bookingEditData, setBookingEditData] = useState({
     start_time: '',
     end_time: ''
+  });
+  const [residentEditData, setResidentEditData] = useState({
+    resident_id: '',
+    name: '',
+    tower: '',
+    floor: 0,
+    flat: '',
+    phone: '',
+    email: ''
   });
   const [billFormData, setBillFormData] = useState({
     resident_id: 'all',
@@ -187,6 +199,23 @@ export default function AdminDashboard({
     }
   };
 
+  const handleUpdateResident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingResident) return;
+
+    setUpdating('updating-resident');
+    try {
+      await societyService.updateResident(editingResident.resident_id, residentEditData);
+      alert('Resident profile updated successfully!');
+      setShowEditResidentModal(false);
+      onRefresh();
+    } catch (error: any) {
+      alert('Update failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const handleCreateMaintenanceBill = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -298,10 +327,6 @@ export default function AdminDashboard({
       });
       fetchAmenities();
     } catch (error: any) {
-      if (error.code === '42P01' || error.code === 'PGRST205') {
-        setDbError('The amenities table does not exist in your database.');
-        setShowSqlModal(true);
-      }
       alert('Failed to update amenity: ' + error.message);
     } finally {
       setUpdating(null);
@@ -439,7 +464,7 @@ export default function AdminDashboard({
                     <th className="px-6 py-4">Name</th>
                     <th className="px-6 py-4">Tower/Floor/Flat</th>
                     <th className="px-6 py-4">Contact</th>
-                    <th className="px-6 py-4">Action</th>
+                    <th className="px-6 py-4">Edit Profile</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-blue-50">
@@ -454,10 +479,23 @@ export default function AdminDashboard({
                       </td>
                       <td className="px-6 py-4">
                         <button 
-                          onClick={() => setActiveTab('maintenance')}
-                          className="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
+                          onClick={() => {
+                            setEditingResident(r);
+                            setResidentEditData({
+                              resident_id: r.resident_id,
+                              name: r.name,
+                              tower: r.tower,
+                              floor: r.floor,
+                              flat: r.flat,
+                              phone: r.phone,
+                              email: r.email
+                            });
+                            setShowEditResidentModal(true);
+                          }}
+                          className="text-xs font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
                         >
-                          View Maintenance
+                          <Edit className="w-3 h-3" />
+                          Edit Profile
                         </button>
                       </td>
                     </tr>
@@ -516,6 +554,7 @@ export default function AdminDashboard({
                   <thead className="bg-blue-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
                     <tr>
                       <th className="px-6 py-4">Maintenance ID</th>
+                      <th className="px-6 py-4">Resident ID</th>
                       <th className="px-6 py-4">Tower</th>
                       <th className="px-6 py-4">Flat No</th>
                       <th className="px-6 py-4">Month</th>
@@ -529,14 +568,14 @@ export default function AdminDashboard({
                     {filteredMaintenance.map((m, index) => (
                       <tr key={m.maintenance_id || m.id || index} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-base font-black text-blue-600 uppercase tracking-tight leading-none">
-                              {m.maintenance_id || (m.id ? m.id.substring(0, 8) : 'N/A')}
-                            </span>
-                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-none mt-1.5">
-                              {m.resident_id}
-                            </span>
-                          </div>
+                          <span className="text-base font-black text-blue-600 uppercase tracking-tight leading-none">
+                            {m.maintenance_id || (m.id ? m.id.substring(0, 8) : 'N/A')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-black text-blue-500 uppercase tracking-widest leading-none">
+                            {m.resident_id}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-gray-600">T-{m.tower}</td>
                         <td className="px-6 py-4 font-bold text-gray-800">{m.flat_no}</td>
@@ -634,6 +673,7 @@ export default function AdminDashboard({
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-xl ${
                             c.status === 'Done' || c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' :
+                            c.status === 'Rejected' ? 'bg-rose-100 text-rose-600' :
                             c.status === 'In Progress' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
                           }`}>
                             <MessageSquare className="w-6 h-6" />
@@ -653,6 +693,7 @@ export default function AdminDashboard({
                         </div>
                         <span className={`text-xs font-black px-4 py-1 rounded-full uppercase ${
                           c.status === 'Done' || c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' :
+                          c.status === 'Rejected' ? 'bg-rose-100 text-rose-700' :
                           c.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                         }`}>
                           {c.status}
@@ -680,26 +721,26 @@ export default function AdminDashboard({
                           disabled={updating === (c.complaint_id || c.id)}
                           className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-all disabled:opacity-50"
                         >
-                          Set Rejected
+                          Mark as Rejected
                         </button>
                       </div>
                     </div>
-                    {(c.media || c.media_url) && (
-                      <div className="md:w-64 h-48 rounded-xl overflow-hidden bg-gray-100 border border-blue-50 relative group">
-                        {((c.media || c.media_url) || '').match(/\.(mp4|webm|ogg)$/) ? (
-                          <video src={c.media || c.media_url} className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={c.media || c.media_url} alt="Complaint attachment" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        )}
+                    {(c.media || c.media_url) ? (
+                      <div className="md:w-48 flex items-center justify-center">
                         <a 
                           href={c.media || c.media_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-sm"
+                          className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-600 rounded-2xl font-black text-xs hover:bg-blue-100 transition-all border border-blue-100 uppercase tracking-widest shadow-sm"
                         >
-                          <ExternalLink className="w-5 h-5 mr-2" />
-                          View Media
+                          <Eye className="w-4 h-4" />
+                          View Image
                         </a>
+                      </div>
+                    ) : (
+                      <div className="md:w-48 flex flex-col items-center justify-center text-gray-300 border-2 border-dashed border-gray-100 rounded-2xl p-4">
+                        <MessageSquare className="w-6 h-6 mb-2 opacity-20" />
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">No Media</span>
                       </div>
                     )}
                   </div>
@@ -714,18 +755,9 @@ export default function AdminDashboard({
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-blue-50 overflow-hidden">
             <div className="p-8 border-b border-blue-50 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setActiveTab('dashboard')}
-                  className="p-2 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
-                  title="Back to Dashboard"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h3 className="text-2xl font-black text-gray-800">Amenity Bookings</h3>
-                  <p className="text-gray-500">Manage and approve resident amenity requests</p>
-                </div>
+              <div>
+                <h3 className="text-2xl font-black text-gray-800">Amenity Bookings</h3>
+                <p className="text-gray-500">Manage and approve resident amenity requests</p>
               </div>
               <div className="flex items-center gap-4">
                 <button 
@@ -798,20 +830,6 @@ export default function AdminDashboard({
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          <button 
-                            onClick={() => {
-                              setEditingBooking(b);
-                              setBookingEditData({
-                                start_time: b.start_time,
-                                end_time: b.end_time
-                              });
-                              setShowBookingEditModal(true);
-                            }}
-                            className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
-                            title="Edit Program Time"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
                           <button 
                             onClick={() => handleUpdateBookingStatus(b.booking_id || b.id!, 'Approved')}
                             disabled={updating === (b.booking_id || b.id) || b.status === 'Approved'}
@@ -924,13 +942,6 @@ export default function AdminDashboard({
                     <option value="tower-C">Tower C Residents</option>
                     <option value="tower-D">Tower D Residents</option>
                   </optgroup>
-                  <optgroup label="Individual Residents">
-                    {residents.map(r => (
-                      <option key={r.resident_id} value={r.resident_id}>
-                        {r.name} ({r.tower}-{r.flat}) - {r.resident_id}
-                      </option>
-                    ))}
-                  </optgroup>
                 </select>
               </div>
 
@@ -969,7 +980,7 @@ export default function AdminDashboard({
                     type="number"
                     required
                     min="1"
-                    value={billFormData.amount}
+                    value={isNaN(billFormData.amount) ? '' : billFormData.amount}
                     onChange={(e) => setBillFormData({ ...billFormData, amount: parseInt(e.target.value) })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold"
                   />
@@ -1019,24 +1030,15 @@ export default function AdminDashboard({
       {/* Booking Edit Modal */}
       {showBookingEditModal && editingBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setShowBookingEditModal(false)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                  title="Back"
-                >
-                  <ArrowLeft className="w-6 h-6" />
-                </button>
-                <div>
-                  <h3 className="text-xl font-black text-gray-800">Update Booking Times</h3>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
-                    {editingBooking.amenity_name} - {editingBooking.booking_date}
-                  </p>
-                </div>
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black">Update Booking Times</h3>
+                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">
+                  {editingBooking.amenity_name} - {editingBooking.booking_date}
+                </p>
               </div>
-              <button onClick={() => setShowBookingEditModal(false)} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
+              <button onClick={() => setShowBookingEditModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -1063,6 +1065,32 @@ export default function AdminDashboard({
                   />
                 </div>
               </div>
+              
+              <div className="flex gap-2 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const modal = document.querySelector('.animate-in');
+                    if (modal) modal.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3 h-3 rotate-180" />
+                  Scroll Up
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const modal = document.querySelector('.animate-in');
+                    if (modal) modal.scrollTo({ top: modal.scrollHeight, behavior: 'smooth' });
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Scroll Down
+                </button>
+              </div>
+
               <button 
                 type="submit"
                 disabled={updating === (editingBooking.booking_id || editingBooking.id)}
@@ -1088,26 +1116,17 @@ export default function AdminDashboard({
       {/* Amenity Price Management Modal */}
       {showAmenityForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-4 bg-white border-b border-gray-100 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setShowAmenityForm(false)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                  title="Back"
-                >
-                  <ArrowLeft className="w-6 h-6" />
-                </button>
-                <div>
-                  <h3 className="text-xl font-black text-gray-800">Amenity Price Management</h3>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Set and update booking amounts</p>
-                </div>
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black">Amenity Price Management</h3>
+                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">Set and update booking amounts</p>
               </div>
-              <button onClick={() => setShowAmenityForm(false)} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
+              <button onClick={() => setShowAmenityForm(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh] scroll-container">
               {dbError && (
                 <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-rose-700 font-black uppercase text-xs">
@@ -1176,7 +1195,7 @@ export default function AdminDashboard({
                         type="number"
                         required
                         placeholder="Price (₹)"
-                        value={amenityFormData.price || ''}
+                        value={isNaN(amenityFormData.price) ? '' : amenityFormData.price}
                         onChange={(e) => setAmenityFormData({ ...amenityFormData, price: parseInt(e.target.value) })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
@@ -1189,7 +1208,7 @@ export default function AdminDashboard({
                         type="number"
                         required
                         min="1"
-                        value={amenityFormData.base_hours}
+                        value={isNaN(amenityFormData.base_hours) ? '' : amenityFormData.base_hours}
                         onChange={(e) => setAmenityFormData({ ...amenityFormData, base_hours: parseInt(e.target.value) })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
@@ -1200,7 +1219,7 @@ export default function AdminDashboard({
                         type="number"
                         required
                         min="0"
-                        value={amenityFormData.extra_hour_charge}
+                        value={isNaN(amenityFormData.extra_hour_charge) ? '' : amenityFormData.extra_hour_charge}
                         onChange={(e) => setAmenityFormData({ ...amenityFormData, extra_hour_charge: parseInt(e.target.value) })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
@@ -1274,7 +1293,6 @@ export default function AdminDashboard({
                         <th className="px-4 py-3">Base Price (₹)</th>
                         <th className="px-4 py-3">Base Hours</th>
                         <th className="px-4 py-3">Extra Hour Charge (₹)</th>
-                        <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -1284,48 +1302,11 @@ export default function AdminDashboard({
                           <td className="px-4 py-3 font-black text-blue-600">₹{a.price}</td>
                           <td className="px-4 py-3 text-gray-500">{a.base_hours}</td>
                           <td className="px-4 py-3 text-gray-500">₹{a.extra_hour_charge}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => {
-                                  setAmenityFormData({
-                                    name: a.name,
-                                    price: a.price,
-                                    description: a.description || '',
-                                    base_hours: a.base_hours || 4,
-                                    extra_hour_charge: a.extra_hour_charge || 0,
-                                    facilities: a.facilities || ''
-                                  });
-                                }}
-                                className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
-                                title="Edit"
-                              >
-                                <Plus className="w-3 h-3 rotate-45" />
-                              </button>
-                              <button 
-                                onClick={async () => {
-                                  if (window.confirm(`Are you sure you want to delete ${a.name}?`)) {
-                                    try {
-                                      await societyService.deleteAmenity(a.amenity_id);
-                                      fetchAmenities();
-                                      alert('Amenity deleted successfully!');
-                                    } catch (error: any) {
-                                      alert('Delete failed: ' + error.message);
-                                    }
-                                  }
-                                }}
-                                className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
-                                title="Delete"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </td>
                         </tr>
                       ))}
                       {amenities.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-gray-400 italic">No amenities configured.</td>
+                          <td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No amenities configured.</td>
                         </tr>
                       )}
                     </tbody>
@@ -1353,7 +1334,7 @@ export default function AdminDashboard({
             <div className="p-6 space-y-4">
               <div className="bg-gray-900 rounded-xl p-4 overflow-x-auto">
                 <pre className="text-green-400 text-xs font-mono leading-relaxed">
-{`-- 1. Create the amenities table
+{`-- 1. Create or Fix the amenities table
 CREATE TABLE IF NOT EXISTS public.amenities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     amenity_id TEXT UNIQUE NOT NULL,
@@ -1367,13 +1348,39 @@ CREATE TABLE IF NOT EXISTS public.amenities (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Add missing columns to existing tables
+-- 2. Fix existing tables for NOT NULL id constraint
+-- For maintenance table
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='maintenance' AND column_name='id' AND is_nullable='NO' AND column_default IS NULL) THEN
+        ALTER TABLE public.maintenance ALTER COLUMN id SET DEFAULT gen_random_uuid();
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    -- If id is not UUID, try to make it serial if it's an integer
+    NULL;
+END $$;
+
+-- For booking table
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='booking' AND column_name='id' AND is_nullable='NO' AND column_default IS NULL) THEN
+        ALTER TABLE public.booking ALTER COLUMN id SET DEFAULT gen_random_uuid();
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- 3. Add missing columns to existing tables
 ALTER TABLE public.complaint ADD COLUMN IF NOT EXISTS society_id TEXT;
+ALTER TABLE public.complaint ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.complaint ADD COLUMN IF NOT EXISTS complaint_id TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS resident_id TEXT;
+ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS resident_name TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS generated_by TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS society_id TEXT;
+ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS admin_id TEXT;
 
--- 3. Create the booking table (if not already exists)
+-- 4. Create or Fix the booking table
 CREATE TABLE IF NOT EXISTS public.booking (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     booking_id TEXT UNIQUE,
@@ -1393,13 +1400,24 @@ CREATE TABLE IF NOT EXISTS public.booking (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Enable Row Level Security (RLS)
+-- Ensure missing columns in booking if it already existed
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS society_id TEXT;
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS resident_id TEXT;
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.booking ENABLE ROW LEVEL SECURITY;
 
--- 4. Create basic policies
+-- 6. Create basic policies
+DROP POLICY IF EXISTS "Allow all on amenities" ON public.amenities;
 CREATE POLICY "Allow all on amenities" ON public.amenities FOR ALL USING (true);
-CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);`}
+DROP POLICY IF EXISTS "Allow all on booking" ON public.booking;
+CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);
+
+-- 7. Refresh schema cache (IMPORTANT)
+NOTIFY pgrst, 'reload schema';`}
                 </pre>
               </div>
               <div className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">
@@ -1409,7 +1427,7 @@ CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);`}
                 </div>
                 <button 
                   onClick={() => {
-                    navigator.clipboard.writeText(`-- 1. Create the amenities table
+                    navigator.clipboard.writeText(`-- 1. Create or Fix the amenities table
 CREATE TABLE IF NOT EXISTS public.amenities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     amenity_id TEXT UNIQUE NOT NULL,
@@ -1423,13 +1441,36 @@ CREATE TABLE IF NOT EXISTS public.amenities (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Add missing columns to existing tables
+-- 2. Fix existing tables for NOT NULL id constraint
+-- For maintenance table
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='maintenance' AND column_name='id' AND is_nullable='NO' AND column_default IS NULL) THEN
+        ALTER TABLE public.maintenance ALTER COLUMN id SET DEFAULT gen_random_uuid();
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- For booking table
+DO $$ 
+BEGIN 
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='booking' AND column_name='id' AND is_nullable='NO' AND column_default IS NULL) THEN
+        ALTER TABLE public.booking ALTER COLUMN id SET DEFAULT gen_random_uuid();
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- 3. Add missing columns to existing tables
 ALTER TABLE public.complaint ADD COLUMN IF NOT EXISTS society_id TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS resident_id TEXT;
+ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS resident_name TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS generated_by TEXT;
 ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS society_id TEXT;
+ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS admin_id TEXT;
 
--- 3. Create the booking table (if not already exists)
+-- 4. Create or Fix the booking table
 CREATE TABLE IF NOT EXISTS public.booking (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     booking_id TEXT UNIQUE,
@@ -1449,13 +1490,23 @@ CREATE TABLE IF NOT EXISTS public.booking (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Enable Row Level Security (RLS)
+-- Ensure missing columns in booking if it already existed
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS society_id TEXT;
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS resident_id TEXT;
+ALTER TABLE public.booking ADD COLUMN IF NOT EXISTS name TEXT;
+
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.booking ENABLE ROW LEVEL SECURITY;
 
--- 5. Create basic policies
+-- 6. Create basic policies
+DROP POLICY IF EXISTS "Allow all on amenities" ON public.amenities;
 CREATE POLICY "Allow all on amenities" ON public.amenities FOR ALL USING (true);
-CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);`);
+DROP POLICY IF EXISTS "Allow all on booking" ON public.booking;
+CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);
+
+-- 7. Refresh schema cache
+NOTIFY pgrst, 'reload schema';`);
                     alert('SQL script copied to clipboard!');
                   }}
                   className="bg-rose-600 text-white font-black px-4 py-2 rounded-lg hover:bg-rose-700 transition-all text-xs uppercase tracking-widest"
@@ -1464,6 +1515,118 @@ CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);`);
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Resident Modal */}
+      {showEditResidentModal && editingResident && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-black">Edit Resident Profile</h3>
+                <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">Update resident information</p>
+              </div>
+              <button onClick={() => setShowEditResidentModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateResident} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resident ID</label>
+                  <input 
+                    type="text"
+                    required
+                    value={residentEditData.resident_id}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, resident_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Name</label>
+                  <input 
+                    type="text"
+                    required
+                    value={residentEditData.name}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, name: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tower</label>
+                  <input 
+                    type="text"
+                    required
+                    value={residentEditData.tower}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, tower: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Floor</label>
+                  <input 
+                    type="number"
+                    required
+                    value={residentEditData.floor}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, floor: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Flat</label>
+                  <input 
+                    type="text"
+                    required
+                    value={residentEditData.flat}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, flat: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone</label>
+                  <input 
+                    type="text"
+                    required
+                    value={residentEditData.phone}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, phone: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email</label>
+                  <input 
+                    type="email"
+                    required
+                    value={residentEditData.email}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, email: e.target.value })}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit"
+                disabled={updating === 'updating-resident'}
+                className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+              >
+                {updating === 'updating-resident' ? (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Update Profile
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}

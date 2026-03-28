@@ -17,14 +17,16 @@ export interface Resident {
 
 export interface MaintenanceRecord {
   id?: string;
-  maintenance_id?: string;
+  maintenance_id: string;
+  bill_no?: string;
   resident_id: string;
-  resident_name: string;
+  resident_name?: string;
   flat_no: string;
   tower: string;
+  floor?: number;
   month: string;
   amount: number;
-  status: 'Paid' | 'Unpaid';
+  status: string;
   due_date: string;
   society_id: string;
   admin_id?: string;
@@ -35,24 +37,26 @@ export interface MaintenanceRecord {
 
 export interface Complaint {
   id?: string;
-  complaint_id?: string;
+  complaint_id: string;
   resident_id: string;
-  name: string;
+  name?: string;
   tower: string;
-  flat: string;
-  category: string;
+  flat_no: string;
+  complaint_date: string;
+  category?: string;
   description: string;
-  date: string;
+  date?: string;
   created_at?: string;
-  status: 'Pending' | 'Done' | 'Rejected' | 'Open' | 'In Progress' | 'Resolved';
+  status: string;
   society_id: string;
+  admin_id?: string;
   media?: string;
   media_url?: string;
 }
 
 export interface Booking {
   id?: string;
-  booking_id?: string;
+  booking_id: string;
   resident_id: string;
   name: string;
   tower: string;
@@ -65,16 +69,19 @@ export interface Booking {
   end_time: string;
   time_slot?: string;
   charges: number;
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: string;
   society_id: string;
   admin_id?: string;
+  created_at?: string;
 }
 
 export interface Amenity {
   id?: string;
   amenity_id: string;
   name: string;
-  price: number;
+  type?: string;
+  charges: number;
+  price?: number;
   society_id: string;
   description?: string;
   base_hours?: number;

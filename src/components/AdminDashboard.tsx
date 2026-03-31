@@ -14,6 +14,7 @@ import {
   Plus,
   Edit,
   Eye,
+  Trash2,
   Image as ImageIcon
 } from 'lucide-react';
 import { User, Resident, MaintenanceRecord, Complaint, Booking, Amenity } from '../types';
@@ -44,6 +45,37 @@ export default function AdminDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
   const [maintenanceFilter, setMaintenanceFilter] = useState<'All' | 'Paid' | 'Unpaid'>('All');
+  const [maintenanceTowerFilter, setMaintenanceTowerFilter] = useState('All');
+  
+  const getMonthYear = (date: Date) => {
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    return `${month} ${year}`;
+  };
+
+  // Shift base date by +1 month as requested (This Month = April, etc.)
+  const baseDate = new Date();
+  baseDate.setDate(1); // Set to 1st to avoid overflow (e.g. March 31 -> April 31 -> May 1)
+  baseDate.setMonth(baseDate.getMonth() + 1);
+
+  const currentMonth = getMonthYear(baseDate);
+  
+  const lastMonthDate = new Date(baseDate);
+  lastMonthDate.setDate(1);
+  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+  const lastMonth = getMonthYear(lastMonthDate);
+  
+  const nextMonthDate = new Date(baseDate);
+  nextMonthDate.setDate(1);
+  nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+  const nextMonth = getMonthYear(nextMonthDate);
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  
+  const [residentTowerFilter, setResidentTowerFilter] = useState('All');
+  const [residentFloorFilter, setResidentFloorFilter] = useState('All');
+  const [residentFlatFilter, setResidentFlatFilter] = useState('All');
+
   const [complaintFilter, setComplaintFilter] = useState<'All' | 'Pending' | 'Done' | 'Rejected'>('All');
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -54,6 +86,7 @@ export default function AdminDashboard({
   const [showEditResidentModal, setShowEditResidentModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [bookingEditData, setBookingEditData] = useState({
     start_time: '',
     end_time: ''
@@ -69,8 +102,8 @@ export default function AdminDashboard({
   });
   const [billFormData, setBillFormData] = useState({
     resident_id: 'all',
-    month: new Date().toLocaleString('default', { month: 'long' }),
-    year: new Date().getFullYear().toString(),
+    month: baseDate.toLocaleString('default', { month: 'long' }),
+    year: baseDate.getFullYear().toString(),
     amount: 2500,
     due_date: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString().split('T')[0],
     description: 'Monthly Maintenance'
@@ -104,30 +137,31 @@ export default function AdminDashboard({
     fetchAmenities();
   }, [user.society_id]);
 
-  // Calculate Statistics
-  const totalResidents = residents.length;
-  const paidMaintenanceCount = maintenance.filter(m => m.status === 'Paid').length;
-  const unpaidMaintenanceCount = maintenance.filter(m => m.status === 'Unpaid').length;
+  // Calculate Statistics for Selected Month
+  const maintenanceForMonth = maintenance.filter(m => m.month === selectedMonth);
+  const totalResidentsCount = residents.length;
+  const paidMaintenanceCount = maintenanceForMonth.filter(m => m.status === 'Paid').length;
+  const unpaidMaintenanceCount = maintenanceForMonth.filter(m => m.status === 'Unpaid').length;
   const totalComplaints = complaints.length;
   const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
   const doneComplaints = complaints.filter(c => c.status === 'Done' || c.status === 'Resolved').length;
   const rejectedComplaints = complaints.filter(c => c.status === 'Rejected').length;
   
   const totalBookings = bookings.length;
-  const totalCollectionAmount = maintenance
+  const totalCollectionAmount = maintenanceForMonth
     .filter(m => m.status === 'Paid')
     .reduce((sum, m) => sum + m.amount, 0);
-  const totalPendingAmount = maintenance
+  const totalPendingAmount = maintenanceForMonth
     .filter(m => m.status === 'Unpaid')
     .reduce((sum, m) => sum + m.amount, 0);
 
   const stats = [
-    { label: 'Total Residents', value: totalResidents, icon: Users, color: 'bg-blue-600' },
+    { label: 'Total Residents', value: totalResidentsCount, icon: Users, color: 'bg-blue-600' },
     { label: 'Paid Maintenance', value: paidMaintenanceCount, icon: CheckCircle2, color: 'bg-emerald-600' },
     { label: 'Unpaid Maintenance', value: unpaidMaintenanceCount, icon: AlertCircle, color: 'bg-amber-600' },
     { label: 'Total Complaints', value: totalComplaints, icon: MessageSquare, color: 'bg-indigo-600' },
     { label: 'Total Bookings', value: totalBookings, icon: Calendar, color: 'bg-violet-600' },
-    { label: 'Total Collection', value: `₹${totalCollectionAmount}`, icon: CreditCard, color: 'bg-emerald-700' },
+    { label: 'Total Collection', value: `₹${totalCollectionAmount.toLocaleString()}`, icon: CreditCard, color: 'bg-emerald-700' },
   ];
 
   const formatTime = (time?: string) => {
@@ -150,6 +184,19 @@ export default function AdminDashboard({
       onRefresh();
     } catch (error: any) {
       alert('Update failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteMaintenance = async (maintenanceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this maintenance record?')) return;
+    setUpdating(maintenanceId);
+    try {
+      await societyService.deleteMaintenanceRecord(maintenanceId);
+      onRefresh();
+    } catch (error: any) {
+      alert('Delete failed: ' + error.message);
     } finally {
       setUpdating(null);
     }
@@ -237,24 +284,22 @@ export default function AdminDashboard({
       }
 
       if (targetResidents.length > 0) {
-        // Generate bills for multiple residents
-        const billPromises = targetResidents.map(resident => 
-          societyService.createMaintenanceBill({
-            resident_id: resident.resident_id,
-            resident_name: resident.name,
-            flat_no: resident.flat,
-            tower: resident.tower,
-            month: fullMonth,
-            amount: billFormData.amount,
-            status: 'Unpaid',
-            due_date: billFormData.due_date,
-            society_id: user.society_id,
-            admin_id: user.admin_id,
-            generated_by: 'Admin'
-          })
-        );
+        // Generate bills for multiple residents using bulk insert
+        const bills = targetResidents.map(resident => ({
+          resident_id: resident.resident_id,
+          resident_name: resident.name,
+          flat_no: resident.flat,
+          tower: resident.tower,
+          month: fullMonth,
+          amount: billFormData.amount,
+          status: 'Unpaid' as const,
+          due_date: billFormData.due_date,
+          society_id: user.society_id,
+          admin_id: user.admin_id,
+          generated_by: 'Admin'
+        }));
 
-        await Promise.all(billPromises);
+        await societyService.createBulkMaintenanceBills(bills);
         alert(`Maintenance bills generated successfully for ${targetResidents.length} residents!`);
       } else {
         // Generate bill for a SPECIFIC resident
@@ -307,6 +352,7 @@ export default function AdminDashboard({
         await societyService.addAmenity({
           name: amenityFormData.name,
           price: amenityFormData.price,
+          charges: amenityFormData.price,
           description: amenityFormData.description,
           base_hours: amenityFormData.base_hours,
           extra_hour_charge: amenityFormData.extra_hour_charge,
@@ -333,17 +379,35 @@ export default function AdminDashboard({
     }
   };
 
-  const filteredResidents = residents.filter(r => 
-    r.resident_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredResidents = residents
+    .filter(r => {
+      const matchesSearch = r.resident_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          r.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTower = residentTowerFilter === 'All' || r.tower === residentTowerFilter;
+      const matchesFloor = residentFloorFilter === 'All' || r.floor.toString() === residentFloorFilter;
+      const matchesFlat = residentFlatFilter === 'All' || r.flat === residentFlatFilter;
+      
+      return matchesSearch && matchesTower && matchesFloor && matchesFlat;
+    })
+    .sort((a, b) => a.resident_id.localeCompare(b.resident_id, undefined, { numeric: true, sensitivity: 'base' }));
 
   const filteredMaintenance = maintenance
     .filter(m => {
-      if (maintenanceFilter === 'All') return true;
-      return m.status === maintenanceFilter;
+      const matchesMonth = m.month === selectedMonth;
+      const matchesStatus = maintenanceFilter === 'All' || m.status === maintenanceFilter;
+      const matchesTower = maintenanceTowerFilter === 'All' || m.tower === maintenanceTowerFilter;
+      
+      return matchesMonth && matchesStatus && matchesTower;
     })
     .sort((a, b) => {
+      // Sort by Resident ID primarily
+      const resIdA = a.resident_id || '';
+      const resIdB = b.resident_id || '';
+      const resCompare = resIdA.localeCompare(resIdB, undefined, { numeric: true, sensitivity: 'base' });
+      
+      if (resCompare !== 0) return resCompare;
+      
+      // Then by Maintenance ID
       const idA = a.maintenance_id || a.id || '';
       const idB = b.maintenance_id || b.id || '';
       return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
@@ -404,7 +468,13 @@ export default function AdminDashboard({
               </div>
 
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-blue-50">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">Recent Bookings</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-black text-gray-900 tracking-tight">Recent Booking</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Latest</span>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   {bookings.slice(0, 5).map((booking, index) => (
                     <div key={booking.booking_id || booking.id || `booking-${index}`} className="flex items-center justify-between p-4 rounded-xl bg-blue-50/30 border border-blue-50">
@@ -441,19 +511,69 @@ export default function AdminDashboard({
         );
 
       case 'residents':
+        const towers = Array.from(new Set(residents.map(r => r.tower))).sort();
+        const floors = Array.from(new Set(residents.map(r => r.floor.toString()))).sort((a, b) => parseInt(a) - parseInt(b));
+        const flats = Array.from(new Set(residents.map(r => r.flat))).sort();
+
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-blue-50 overflow-hidden">
-            <div className="p-6 border-b border-blue-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <h3 className="text-lg font-bold text-gray-800">Resident Management</h3>
-              <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search ID or name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full md:w-64"
-                />
+            <div className="p-6 border-b border-blue-50 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h3 className="text-lg font-bold text-gray-800">Resident Management</h3>
+                <div className="relative w-full md:w-64">
+                  <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search ID or name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tower:</span>
+                  <select 
+                    value={residentTowerFilter}
+                    onChange={(e) => setResidentTowerFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold text-gray-700"
+                  >
+                    <option value="All">All Towers</option>
+                    {towers.map(t => <option key={t} value={t}>Tower {t}</option>)}
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Floor:</span>
+                  <select 
+                    value={residentFloorFilter}
+                    onChange={(e) => setResidentFloorFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold text-gray-700"
+                  >
+                    <option value="All">All Floors</option>
+                    {floors.map(f => <option key={f} value={f}>Floor {f}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Flat:</span>
+                  <select 
+                    value={residentFlatFilter}
+                    onChange={(e) => setResidentFlatFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold text-gray-700"
+                  >
+                    <option value="All">All Flats</option>
+                    {flats.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+
+                <div className="ml-auto">
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-widest">
+                    Total: {filteredResidents.length}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -507,12 +627,63 @@ export default function AdminDashboard({
         );
 
       case 'maintenance':
+        const maintenanceTowers = Array.from(new Set(maintenance.map(m => m.tower))).sort();
+
         return (
           <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-3xl font-black text-gray-800 tracking-tight">
+                Maintenance – <span className="text-blue-600">{selectedMonth}</span>
+              </h2>
+              <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-blue-50 overflow-x-auto no-scrollbar">
+                <button 
+                  onClick={() => setSelectedMonth(lastMonth)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                    selectedMonth === lastMonth ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-blue-600'
+                  }`}
+                >
+                  Last Month ({lastMonth.split(' ')[0]})
+                </button>
+                <button 
+                  onClick={() => setSelectedMonth(currentMonth)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                    selectedMonth === currentMonth ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-blue-600'
+                  }`}
+                >
+                  This Month ({currentMonth.split(' ')[0]})
+                </button>
+                <button 
+                  onClick={() => setSelectedMonth(nextMonth)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                    selectedMonth === nextMonth ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-gray-400 hover:text-blue-600'
+                  }`}
+                >
+                  Next Month ({nextMonth.split(' ')[0]})
+                </button>
+                <div className="h-6 w-[1px] bg-gray-200 mx-1 shrink-0" />
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-transparent outline-none text-gray-600 hover:text-blue-600 cursor-pointer"
+                >
+                  <option value="" disabled>Select Month</option>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(1); // Set to 1st to avoid overflow (e.g. Feb 31)
+                    d.setMonth(i); // Show all months of the current year
+                    const m = d.toLocaleString('default', { month: 'long' });
+                    const y = d.getFullYear();
+                    const val = `${m} ${y}`;
+                    return <option key={val} value={val}>{val}</option>;
+                  })}
+                </select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-blue-600 p-6 rounded-2xl text-white shadow-lg shadow-blue-100">
                 <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Total Residents</p>
-                <h3 className="text-3xl font-black">{totalResidents}</h3>
+                <h3 className="text-3xl font-black">{totalResidentsCount}</h3>
               </div>
               <div className="bg-emerald-600 p-6 rounded-2xl text-white shadow-lg shadow-emerald-100">
                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">Total Paid Amount</p>
@@ -525,28 +696,51 @@ export default function AdminDashboard({
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-blue-50 overflow-hidden">
-              <div className="p-6 border-b border-blue-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-lg font-bold text-gray-800">Maintenance Records</h3>
-                  <button 
-                    onClick={() => setShowBillForm(true)}
-                    className="px-4 py-2 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Generate New Bill
-                  </button>
+              <div className="p-6 border-b border-blue-50 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-bold text-gray-800">Maintenance Records</h3>
+                    <button 
+                      onClick={() => setShowBillForm(true)}
+                      className="px-4 py-2 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Generate New Bill
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-gray-400 uppercase">Filter:</span>
-                  <select 
-                    value={maintenanceFilter}
-                    onChange={(e) => setMaintenanceFilter(e.target.value as any)}
-                    className="px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-gray-700"
-                  >
-                    <option value="All">Show All</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Unpaid">Unpaid</option>
-                  </select>
+
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status:</span>
+                    <select 
+                      value={maintenanceFilter}
+                      onChange={(e) => setMaintenanceFilter(e.target.value as any)}
+                      className="px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold text-gray-700"
+                    >
+                      <option value="All">Show All</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Unpaid">Unpaid</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tower:</span>
+                    <select 
+                      value={maintenanceTowerFilter}
+                      onChange={(e) => setMaintenanceTowerFilter(e.target.value)}
+                      className="px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold text-gray-700"
+                    >
+                      <option value="All">All Towers</option>
+                      {maintenanceTowers.map(t => <option key={t} value={t}>Tower {t}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="ml-auto">
+                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full uppercase tracking-widest">
+                      Records: {filteredMaintenance.length}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -566,7 +760,7 @@ export default function AdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-blue-50">
                     {filteredMaintenance.map((m, index) => (
-                      <tr key={m.maintenance_id || m.id || index} className="hover:bg-blue-50/30 transition-colors">
+                      <tr key={m.id || m.maintenance_id || `m-${index}`} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4">
                           <span className="text-base font-black text-blue-600 uppercase tracking-tight leading-none">
                             {m.maintenance_id || (m.id ? m.id.substring(0, 8) : 'N/A')}
@@ -608,6 +802,14 @@ export default function AdminDashboard({
                                 Mark as Unpaid
                               </button>
                             )}
+                            <button 
+                              onClick={() => handleDeleteMaintenance(m.maintenance_id || m.id!)}
+                              disabled={updating === (m.maintenance_id || m.id)}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50"
+                              title="Delete Record"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -687,7 +889,7 @@ export default function AdminDashboard({
                             </div>
                             <p className="text-sm text-gray-400">
                               By: {c.name || residents.find(r => r.resident_id === c.resident_id)?.name || c.resident_id} • 
-                              Flat: {c.flat || 'N/A'} • {c.date}
+                              Flat: {c.flat_no || 'N/A'} • {c.date}
                             </p>
                           </div>
                         </div>
@@ -727,20 +929,25 @@ export default function AdminDashboard({
                     </div>
                     {(c.media || c.media_url) ? (
                       <div className="md:w-48 flex items-center justify-center">
-                        <a 
-                          href={c.media || c.media_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-600 rounded-2xl font-black text-xs hover:bg-blue-100 transition-all border border-blue-100 uppercase tracking-widest shadow-sm"
+                        <div 
+                          onClick={() => setSelectedImage(c.media || c.media_url || null)}
+                          className="relative group cursor-pointer overflow-hidden rounded-2xl border border-blue-100 shadow-sm"
                         >
-                          <Eye className="w-4 h-4" />
-                          View Image
-                        </a>
+                          <img 
+                            src={c.media || c.media_url} 
+                            alt="Complaint Media" 
+                            className="w-full h-32 object-cover transition-transform group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <div className="md:w-48 flex flex-col items-center justify-center text-gray-300 border-2 border-dashed border-gray-100 rounded-2xl p-4">
-                        <MessageSquare className="w-6 h-6 mb-2 opacity-20" />
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">No Media</span>
+                      <div className="md:w-48 flex flex-col items-center justify-center text-gray-300 border-2 border-dashed border-gray-100 rounded-2xl p-4 bg-gray-50/50">
+                        <ImageIcon className="w-8 h-8 mb-2 opacity-20" />
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">No Media Uploaded</span>
                       </div>
                     )}
                   </div>
@@ -941,6 +1148,14 @@ export default function AdminDashboard({
                     <option value="tower-B">Tower B Residents</option>
                     <option value="tower-C">Tower C Residents</option>
                     <option value="tower-D">Tower D Residents</option>
+                    <option value="tower-E">Tower E Residents</option>
+                  </optgroup>
+                  <optgroup label="Individual Residents">
+                    {residents.map(r => (
+                      <option key={r.resident_id} value={r.resident_id}>
+                        {r.name} ({r.resident_id}) - T-{r.tower} / {r.flat}
+                      </option>
+                    ))}
                   </optgroup>
                 </select>
               </div>
@@ -1166,17 +1381,36 @@ export default function AdminDashboard({
                               price: existing.price,
                               base_hours: existing.base_hours || 4,
                               extra_hour_charge: existing.extra_hour_charge || 0,
-                              description: existing.description || ''
+                              description: existing.description || '',
+                              facilities: existing.facilities || ''
                             });
                           } else {
                             // Predefined pricing for new entries if they match standard names
-                            let defaults = { price: 0, base_hours: 4, extra_hour_charge: 0, description: '' };
+                            let defaults = { price: 0, base_hours: 4, extra_hour_charge: 0, description: '', facilities: '' };
                             if (name === 'Clubhouse Hall') {
-                              defaults = { price: 2500, base_hours: 4, extra_hour_charge: 500, description: 'Indoor hall with AC, chairs, and lighting for events like birthdays and meetings.' };
-                            } else if (name === 'Garden Hall') {
-                              defaults = { price: 1500, base_hours: 4, extra_hour_charge: 300, description: 'Outdoor space for family gatherings and small celebrations.' };
+                              defaults = { 
+                                price: 2500, 
+                                base_hours: 4, 
+                                extra_hour_charge: 500, 
+                                description: 'Indoor hall with AC, chairs, and lighting for events like birthdays and meetings.',
+                                facilities: 'Indoor seating, AC, lighting, sound system, tables and chairs'
+                              };
+                            } else if (name === 'Garden Area') {
+                              defaults = { 
+                                price: 1500, 
+                                base_hours: 4, 
+                                extra_hour_charge: 300, 
+                                description: 'Outdoor space for family gatherings and small celebrations.',
+                                facilities: 'Open lawn space, seating benches, decorative lights, walking area'
+                              };
                             } else if (name === 'Community Hall') {
-                              defaults = { price: 3000, base_hours: 5, extra_hour_charge: 600, description: 'Large hall for society functions, cultural events, and meetings.' };
+                              defaults = { 
+                                price: 3000, 
+                                base_hours: 5, 
+                                extra_hour_charge: 600, 
+                                description: 'Large hall for society functions, cultural events, and meetings.',
+                                facilities: 'Large hall for events, stage, fans/AC, power supply, seating arrangement'
+                              };
                             }
                             setAmenityFormData({ ...amenityFormData, name, ...defaults });
                           }
@@ -1185,7 +1419,7 @@ export default function AdminDashboard({
                       />
                       <datalist id="amenity-suggestions">
                         <option value="Clubhouse Hall" />
-                        <option value="Garden Hall" />
+                        <option value="Garden Area" />
                         <option value="Community Hall" />
                       </datalist>
                     </div>
@@ -1261,9 +1495,9 @@ export default function AdminDashboard({
                           
                           // 2. Add default amenities
                           const defaults = [
-                            { name: 'Clubhouse Hall', price: 2500, base_hours: 4, extra_hour_charge: 500, description: 'Indoor hall with AC, chairs, and lighting for events like birthdays and meetings.', society_id: user.society_id },
-                            { name: 'Garden Hall', price: 1500, base_hours: 4, extra_hour_charge: 300, description: 'Outdoor space for family gatherings and small celebrations.', society_id: user.society_id },
-                            { name: 'Community Hall', price: 3000, base_hours: 5, extra_hour_charge: 600, description: 'Large hall for society functions, cultural events, and meetings.', society_id: user.society_id }
+                            { name: 'Clubhouse Hall', price: 2500, charges: 2500, base_hours: 4, extra_hour_charge: 500, description: 'Indoor hall with AC, chairs, and lighting for events like birthdays and meetings.', facilities: 'Indoor seating, AC, lighting, sound system, tables and chairs', society_id: user.society_id },
+                            { name: 'Garden Area', price: 1500, charges: 1500, base_hours: 4, extra_hour_charge: 300, description: 'Outdoor space for family gatherings and small celebrations.', facilities: 'Open lawn space, seating benches, decorative lights, walking area', society_id: user.society_id },
+                            { name: 'Community Hall', price: 3000, charges: 3000, base_hours: 5, extra_hour_charge: 600, description: 'Large hall for society functions, cultural events, and meetings.', facilities: 'Large hall for events, stage, fans/AC, power supply, seating arrangement', society_id: user.society_id }
                           ];
                           
                           for (const d of defaults) {
@@ -1319,6 +1553,28 @@ export default function AdminDashboard({
       )}
 
       {/* SQL Fix Modal */}
+      {/* Image Preview Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={selectedImage} 
+            alt="Full Preview" 
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            referrerPolicy="no-referrer"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {showSqlModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -1417,7 +1673,24 @@ DROP POLICY IF EXISTS "Allow all on booking" ON public.booking;
 CREATE POLICY "Allow all on booking" ON public.booking FOR ALL USING (true);
 
 -- 7. Refresh schema cache (IMPORTANT)
-NOTIFY pgrst, 'reload schema';`}
+NOTIFY pgrst, 'reload schema';
+
+-- 8. Create Media table for complaint attachments
+CREATE TABLE IF NOT EXISTS public.media (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    media_id TEXT UNIQUE NOT NULL,
+    complaint_id TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    uploaded_at TIMESTAMPTZ DEFAULT now(),
+    uploaded_by TEXT,
+    society_id TEXT
+);
+
+-- 9. Storage Policies for 'media' bucket (Run this in SQL Editor)
+-- Note: Make sure to create a public bucket named 'media' first in Storage section
+-- CREATE POLICY "Allow public upload" ON storage.objects FOR INSERT TO public WITH CHECK (bucket_id = 'media');
+-- CREATE POLICY "Allow public view" ON storage.objects FOR SELECT TO public USING (bucket_id = 'media');
+`}
                 </pre>
               </div>
               <div className="flex justify-between items-center bg-rose-50 p-4 rounded-xl border border-rose-100">

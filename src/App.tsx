@@ -4,7 +4,6 @@ import { initialResidents, initialMaintenance, initialComplaints, initialBooking
 import { societyService } from './lib/societyService';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
-import Sidebar from './components/Sidebar';
 import AdminDashboard from './components/AdminDashboard';
 import ResidentDashboard from './components/ResidentDashboard';
 
@@ -110,7 +109,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="flex min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-stone-50">
       {!isSupabaseConfigured && (
         <div className="fixed top-0 left-0 right-0 bg-emerald-600 text-white px-4 py-2 text-sm z-[9999] shadow-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -125,14 +124,8 @@ export default function App() {
           </button>
         </div>
       )}
-      <Sidebar 
-        isAdmin={!!user.admin_id} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        onLogout={handleLogout} 
-      />
       
-      <main className="flex-1 overflow-y-auto h-screen">
+      <main className="min-h-screen">
         {user.admin_id ? (
           <AdminDashboard 
             user={user}
@@ -143,6 +136,7 @@ export default function App() {
             complaints={complaints}
             bookings={bookings}
             onRefresh={fetchData}
+            onLogout={handleLogout}
           />
         ) : (
           currentResident && (
@@ -154,6 +148,7 @@ export default function App() {
               bookings={bookings}
               onRefresh={fetchData}
               setActiveTab={setActiveTab}
+              onLogout={handleLogout}
             />
           )
         )}

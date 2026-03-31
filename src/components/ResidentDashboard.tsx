@@ -11,7 +11,10 @@ import {
   Upload,
   ChevronRight,
   ArrowUpRight,
-  Plus
+  Plus,
+  Eye,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import AmenityBooking from './AmenityBooking';
 import { Resident, MaintenanceRecord, Complaint, Booking } from '../types';
@@ -86,6 +89,8 @@ export default function ResidentDashboard({
       setMediaFile(e.target.files[0]);
     }
   };
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleSubmitComplaint = async () => {
     if (!description.trim() || !complaintCategory.trim()) {
@@ -296,8 +301,8 @@ export default function ResidentDashboard({
 
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-blue-50">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-gray-800">My Recent Bookings</h3>
-                  <button onClick={() => setActiveTab('bookings')} className="text-amber-600 text-xs font-bold hover:underline">View All</button>
+                  <h3 className="text-lg font-black text-gray-900 tracking-tight">My Recent Booking</h3>
+                  <button onClick={() => setActiveTab('bookings')} className="text-amber-600 text-[10px] font-black uppercase tracking-widest hover:underline">View All</button>
                 </div>
                 <div className="space-y-4">
                   {residentBookings.slice(0, 3).map((b, index) => (
@@ -547,13 +552,27 @@ export default function ResidentDashboard({
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-4 font-medium">{c.description}</p>
-                    {(c.media || c.media_url) && (
-                      <div className="mt-4 rounded-xl overflow-hidden border border-blue-50">
-                        {((c.media || c.media_url) || '').match(/\.(mp4|webm|ogg)$/) ? (
-                          <video src={c.media || c.media_url} controls className="w-full max-h-48 object-cover" />
-                        ) : (
-                          <img src={c.media || c.media_url} alt="Complaint media" className="w-full max-h-48 object-cover" referrerPolicy="no-referrer" />
-                        )}
+                    {(c.media || c.media_url) ? (
+                      <div className="mt-4">
+                        <div 
+                          onClick={() => setSelectedImage(c.media || c.media_url || null)}
+                          className="relative group cursor-pointer overflow-hidden rounded-xl border border-blue-100 shadow-sm w-32 h-32"
+                        >
+                          <img 
+                            src={c.media || c.media_url} 
+                            alt="Complaint Media" 
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye className="w-5 h-5 text-white" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 flex flex-col items-center justify-center text-gray-300 border-2 border-dashed border-gray-100 rounded-2xl p-4 bg-gray-50/50 w-32 h-32">
+                        <ImageIcon className="w-6 h-6 mb-1 opacity-20" />
+                        <span className="text-[8px] font-black uppercase tracking-widest opacity-40 text-center">No Media Uploaded</span>
                       </div>
                     )}
                   </div>
@@ -695,6 +714,26 @@ export default function ResidentDashboard({
       </header>
 
       {renderContent()}
+
+      {/* Image Preview Modal */}
+      {selectedImage && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 md:p-10">
+          <button 
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div className="max-w-full max-h-full flex items-center justify-center">
+            <img 
+              src={selectedImage} 
+              alt="Full Preview" 
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

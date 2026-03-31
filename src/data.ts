@@ -109,10 +109,10 @@ export const initialMaintenance: MaintenanceRecord[] = Array.from({ length: 80 }
 });
 
 export const initialComplaints: Complaint[] = [
-  { id: 'C001', complaint_id: 'C001', resident_id: 'R001', name: 'Rahul Sharma', tower: 'A', flat: 'A101', category: 'Water Supply Issue', description: 'Water leakage in kitchen', date: '2026-03-10', status: 'Pending', society_id: 'GV2026' },
-  { id: 'C002', complaint_id: 'C002', resident_id: 'R002', name: 'Priya Mehta', tower: 'A', flat: 'A102', category: 'Electricity Issue', description: 'Power fluctuation in living room', date: '2026-03-11', status: 'Pending', society_id: 'GV2026' },
-  { id: 'C003', complaint_id: 'C003', resident_id: 'R003', name: 'Amit Patil', tower: 'A', flat: 'A103', category: 'Lift Issue', description: 'Door hinge broken', date: '2026-03-12', status: 'In Progress', society_id: 'GV2026' },
-  { id: 'C004', complaint_id: 'C004', resident_id: 'R004', name: 'Sneha Joshi', tower: 'A', flat: 'A104', category: 'Cleanliness Issue', description: 'Common area not cleaned', date: '2026-03-13', status: 'Done', society_id: 'GV2026' },
+  { id: 'C001', complaint_id: 'C001', resident_id: 'R001', name: 'Rahul Sharma', tower: 'A', flat_no: 'A101', category: 'Water Supply Issue', description: 'Water leakage in kitchen', date: '2026-03-10', complaint_date: '2026-03-10', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C002', complaint_id: 'C002', resident_id: 'R002', name: 'Priya Mehta', tower: 'A', flat_no: 'A102', category: 'Electricity Issue', description: 'Power fluctuation in living room', date: '2026-03-11', complaint_date: '2026-03-11', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C003', complaint_id: 'C003', resident_id: 'R003', name: 'Amit Patil', tower: 'A', flat_no: 'A103', category: 'Lift Issue', description: 'Door hinge broken', date: '2026-03-12', complaint_date: '2026-03-12', status: 'In Progress', society_id: 'GV2026' },
+  { id: 'C004', complaint_id: 'C004', resident_id: 'R004', name: 'Sneha Joshi', tower: 'A', flat_no: 'A104', category: 'Cleanliness Issue', description: 'Common area not cleaned', date: '2026-03-13', complaint_date: '2026-03-13', status: 'Done', society_id: 'GV2026' },
 ];
 
 export const initialBookings: Booking[] = [
@@ -140,8 +140,8 @@ export const initialBookings: Booking[] = [
     name: 'Priya Mehta',
     tower: 'A',
     flat: 'A102',
-    amenity_name: 'Garden Hall', 
-    amenity_type: 'Outdoor Hall',
+    amenity_name: 'Garden Area', 
+    amenity_type: 'Outdoor Area',
     event_name: 'Family Gathering',
     booking_date: '2026-04-06', 
     start_time: '06:00 AM', 
@@ -175,9 +175,10 @@ export const initialAmenities: Amenity[] = [
     name: 'Clubhouse Hall',
     description: 'Indoor Hall',
     price: 2500,
+    charges: 2500,
     base_hours: 4,
     extra_hour_charge: 500,
-    facilities: 'AC Hall, 30 Chairs, Tables, Lighting, Washroom',
+    facilities: 'Indoor seating, AC, lighting, sound system, tables and chairs',
     society_id: 'GV2026'
   },
   {
@@ -185,9 +186,10 @@ export const initialAmenities: Amenity[] = [
     name: 'Garden Area',
     description: 'Outdoor Area',
     price: 1500,
+    charges: 1500,
     base_hours: 4,
     extra_hour_charge: 300,
-    facilities: 'Open Garden Space, Decorative Lights, Small Stage',
+    facilities: 'Open lawn space, seating benches, decorative lights, walking area',
     society_id: 'GV2026'
   },
   {
@@ -195,9 +197,10 @@ export const initialAmenities: Amenity[] = [
     name: 'Community Hall',
     description: 'Indoor Hall',
     price: 3000,
+    charges: 3000,
     base_hours: 5,
     extra_hour_charge: 600,
-    facilities: 'Large Hall, 50 Chairs, Stage, Sound System, Lighting',
+    facilities: 'Large hall for events, stage, fans/AC, power supply, seating arrangement',
     society_id: 'GV2026'
   }
 ];

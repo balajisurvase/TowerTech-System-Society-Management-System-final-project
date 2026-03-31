@@ -89,6 +89,16 @@ export interface Amenity {
   facilities?: string;
 }
 
+export interface Media {
+  id?: string;
+  media_id: string;
+  complaint_id: string;
+  file_url: string;
+  uploaded_at?: string;
+  uploaded_by: string;
+  society_id: string;
+}
+
 export interface User {
   id: string;
   name: string;

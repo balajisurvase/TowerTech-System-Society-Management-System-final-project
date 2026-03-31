@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import { Resident, MaintenanceRecord, Complaint, Booking, Society, Admin, Amenity } from '../types';
+import { supabase, supabaseUrl } from './supabase';
+import { Resident, MaintenanceRecord, Complaint, Booking, Society, Admin, Amenity, Media } from '../types';
 import { initialAmenities } from '../data';
 
 // Helper to generate a UUID if needed
@@ -43,11 +43,10 @@ export const societyService = {
       const { data: societyResult, error: societyError } = await supabase
         .from('society')
         .insert([{ ...societyData, society_id }])
-        .select()
-        .single();
+        .select();
       
-      if (!societyError && societyResult) {
-        society = societyResult;
+      if (!societyError && societyResult && societyResult.length > 0) {
+        society = societyResult[0];
       }
     } catch (err) {
       console.warn('Society table might be missing, skipping society record creation:', err);
@@ -67,15 +66,14 @@ export const societyService = {
     const { data: admin, error: adminError } = await supabase
       .from('admin')
       .insert([adminData])
-      .select()
-      .single();
+      .select();
 
     if (adminError) {
       console.error('Admin creation error:', adminError);
       throw adminError;
     }
 
-    return { society, admin };
+    return { society, admin: admin ? admin[0] : null };
   },
 
   async resetPassword(email: string) {
@@ -86,12 +84,17 @@ export const societyService = {
     return { success: true };
   },
 
-  async getResidentMaintenance(resident_id: string) {
-    const { data, error } = await supabase
+  async getResidentMaintenance(resident_id: string, society_id?: string) {
+    let query = supabase
       .from('maintenance')
       .select('*')
-      .eq('resident_id', resident_id)
-      .order('due_date', { ascending: false });
+      .eq('resident_id', resident_id);
+    
+    if (society_id) {
+      query = query.eq('society_id', society_id);
+    }
+
+    const { data, error } = await query.order('due_date', { ascending: false });
     
     if (error) {
       // Fallback: if column doesn't exist, try to fetch all and filter in memory
@@ -127,11 +130,10 @@ export const societyService = {
       .from('maintenance')
       .update({ status })
       .eq('maintenance_id', maintenance_id)
-      .select()
-      .single();
+      .select();
     
     if (error) throw error;
-    return data as MaintenanceRecord;
+    return data && data.length > 0 ? data[0] as MaintenanceRecord : null;
   },
 
   async createMaintenanceBill(bill: Omit<MaintenanceRecord, 'id' | 'maintenance_id'>) {
@@ -149,7 +151,7 @@ export const societyService = {
     }
 
     const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
     const maintenance_id = `M-${timestamp}${random}`;
 
     const billWithId = { 
@@ -162,8 +164,7 @@ export const societyService = {
     const { data, error } = await supabase
       .from('maintenance')
       .insert([billWithId])
-      .select()
-      .single();
+      .select();
     
     if (error) {
       // If columns are missing or NOT NULL constraint violated, try to insert without them
@@ -179,8 +180,7 @@ export const societyService = {
         const { data: retryData, error: retryError } = await supabase
           .from('maintenance')
           .insert([{ ...minimalBill, id: generateUUID(), maintenance_id }])
-          .select()
-          .single();
+          .select();
         
         if (retryError) {
           console.error('Error creating maintenance bill after retry:', retryError);
@@ -201,20 +201,50 @@ export const societyService = {
             const { data: finalData, error: finalError } = await supabase
               .from('maintenance')
               .insert([superMinimalBill])
-              .select()
-              .single();
+              .select();
             
             if (finalError) throw finalError;
-            return finalData as MaintenanceRecord;
+            return finalData[0] as MaintenanceRecord;
           }
           throw retryError;
         }
-        return retryData as MaintenanceRecord;
+        return retryData[0] as MaintenanceRecord;
       }
       console.error('Error creating maintenance bill:', error);
       throw error;
     }
-    return data as MaintenanceRecord;
+    return data[0] as MaintenanceRecord;
+  },
+
+  async createBulkMaintenanceBills(bills: Omit<MaintenanceRecord, 'id' | 'maintenance_id'>[]) {
+    if (bills.length === 0) return [];
+
+    const billsWithIds = bills.map((bill, index) => {
+      const timestamp = Date.now().toString().slice(-6);
+      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+      const maintenance_id = `M-${timestamp}${random}${index.toString().padStart(2, '0')}`;
+      
+      return {
+        ...bill,
+        id: generateUUID(),
+        maintenance_id,
+        created_at: new Date().toISOString()
+      };
+    });
+
+    const { data, error } = await supabase
+      .from('maintenance')
+      .insert(billsWithIds)
+      .select();
+
+    if (error) {
+      console.error('Error creating bulk maintenance bills:', error);
+      // If bulk insert fails, we could try one by one or just throw
+      // For now, let's throw so the UI can handle it
+      throw error;
+    }
+
+    return data as MaintenanceRecord[];
   },
 
   async getAmenities(society_id: string) {
@@ -245,11 +275,10 @@ export const societyService = {
       .from('amenities')
       .update(updates)
       .eq('amenity_id', amenity_id)
-      .select()
-      .single();
+      .select();
     
     if (error) throw error;
-    return data as Amenity;
+    return data && data.length > 0 ? data[0] as Amenity : null;
   },
 
   async deleteAmenity(amenity_id: string) {
@@ -270,8 +299,7 @@ export const societyService = {
     const { data, error } = await supabase
       .from('amenities')
       .insert([{ ...amenity, amenity_id }])
-      .select()
-      .single();
+      .select();
     
     if (error) {
       // If society_id column is missing, try without it
@@ -280,22 +308,26 @@ export const societyService = {
         const { data: retryData, error: retryError } = await supabase
           .from('amenities')
           .insert([{ ...amenityWithoutSociety, amenity_id }])
-          .select()
-          .single();
+          .select();
         if (retryError) throw retryError;
-        return retryData as Amenity;
+        return retryData && retryData.length > 0 ? retryData[0] as Amenity : null;
       }
       throw error;
     }
-    return data as Amenity;
+    return data && data.length > 0 ? data[0] as Amenity : null;
   },
 
-  async getResidentComplaints(resident_id: string) {
-    const { data, error } = await supabase
+  async getResidentComplaints(resident_id: string, society_id?: string) {
+    let query = supabase
       .from('complaint')
       .select('*')
-      .eq('resident_id', resident_id)
-      .order('date', { ascending: false });
+      .eq('resident_id', resident_id);
+    
+    if (society_id) {
+      query = query.eq('society_id', society_id);
+    }
+
+    const { data, error } = await query.order('date', { ascending: false });
     
     if (error) {
       // Fallback: if resident_id column is missing, try to fetch all and filter in memory
@@ -330,27 +362,27 @@ export const societyService = {
     return data as Complaint[];
   },
 
-  async addComplaint(complaint: Omit<Complaint, 'id'>) {
-    // Generate a complaint_id if not provided
-    if (!complaint.complaint_id) {
-      try {
-        const { count, error: countError } = await supabase
-          .from('complaint')
-          .select('*', { count: 'exact', head: true });
-        
-        const nextNumber = (count || 0) + 11; // Start from C011 if count is 0
-        complaint.complaint_id = `C${nextNumber.toString().padStart(3, '0')}`;
-      } catch (e) {
-        const timestamp = Date.now().toString().slice(-6);
-        complaint.complaint_id = `C-${timestamp}`;
-      }
+  async addComplaint(complaintData: Omit<Complaint, 'id' | 'complaint_id'>) {
+    // Generate a unique complaint ID: C011, C012...
+    let complaint_id = '';
+    try {
+      const { count } = await supabase
+        .from('complaint')
+        .select('*', { count: 'exact', head: true });
+      
+      const nextNumber = (count || 0) + 11; // Start from C011 if count is 0
+      complaint_id = `C${nextNumber.toString().padStart(3, '0')}`;
+    } catch (e) {
+      const timestamp = Date.now().toString().slice(-6);
+      complaint_id = `C-${timestamp}`;
     }
+
+    const complaint = { ...complaintData, complaint_id };
 
     const { data, error } = await supabase
       .from('complaint')
       .insert([complaint])
-      .select()
-      .single();
+      .select();
     
     if (error) {
       // If society_id column is missing, try without it
@@ -359,8 +391,7 @@ export const societyService = {
         const { data: retryData, error: retryError } = await supabase
           .from('complaint')
           .insert([complaintWithoutSociety])
-          .select()
-          .single();
+          .select();
         
         if (retryError) {
           console.error('Error submitting complaint after retry:', retryError);
@@ -376,19 +407,65 @@ export const societyService = {
             const { data: finalData, error: finalError } = await supabase
               .from('complaint')
               .insert([superMinimalComplaint])
-              .select()
-              .single();
+              .select();
             if (finalError) throw finalError;
-            return finalData as Complaint;
+            
+            // If media is present, try to save to media table
+            if (complaint.media || complaint.media_url) {
+              await this.saveMedia({
+                complaint_id: complaint.complaint_id,
+                file_url: complaint.media || complaint.media_url || '',
+                uploaded_by: complaint.resident_id,
+                society_id: complaint.society_id
+              }).catch(err => console.warn('Failed to save to media table:', err));
+            }
+            
+            return finalData && finalData.length > 0 ? finalData[0] as Complaint : null;
           }
           throw retryError;
         }
-        return retryData as Complaint;
+        
+        // If media is present, try to save to media table
+        if (complaint.media || complaint.media_url) {
+          await this.saveMedia({
+            complaint_id: complaint.complaint_id,
+            file_url: complaint.media || complaint.media_url || '',
+            uploaded_by: complaint.resident_id,
+            society_id: complaint.society_id
+          }).catch(err => console.warn('Failed to save to media table:', err));
+        }
+        
+        return retryData && retryData.length > 0 ? retryData[0] as Complaint : null;
       }
       console.error('Error submitting complaint:', error);
       throw error;
     }
-    return data as Complaint;
+    
+    // If media is present, try to save to media table
+    if (complaint.media || complaint.media_url) {
+      await this.saveMedia({
+        complaint_id: complaint.complaint_id,
+        file_url: complaint.media || complaint.media_url || '',
+        uploaded_by: complaint.resident_id,
+        society_id: complaint.society_id
+      }).catch(err => console.warn('Failed to save to media table:', err));
+    }
+    
+    return data && data.length > 0 ? data[0] as Complaint : null;
+  },
+
+  async saveMedia(mediaData: Omit<Media, 'id' | 'media_id'>) {
+    const media_id = `M-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const { data, error } = await supabase
+      .from('media')
+      .insert([{ ...mediaData, media_id }])
+      .select();
+    
+    if (error) {
+      console.error('Error saving media record:', error);
+      throw error;
+    }
+    return data && data.length > 0 ? data[0] as Media : null;
   },
 
   async updateComplaintStatus(complaint_id: string, status: Complaint['status']) {
@@ -396,16 +473,15 @@ export const societyService = {
       .from('complaint')
       .update({ status })
       .eq('complaint_id', complaint_id)
-      .select()
-      .single();
+      .select();
     
     if (error) throw error;
-    return data as Complaint;
+    return data && data.length > 0 ? data[0] as Complaint : null;
   },
 
   async getBookings() {
     const { data, error } = await supabase
-      .from('bookings')
+      .from('booking')
       .select('*')
       .order('booking_date', { ascending: false });
     
@@ -419,12 +495,17 @@ export const societyService = {
     return data as Booking[];
   },
 
-  async getResidentBookings(resident_id: string) {
-    const { data, error } = await supabase
-      .from('bookings')
+  async getResidentBookings(resident_id: string, society_id?: string) {
+    let query = supabase
+      .from('booking')
       .select('*')
-      .eq('resident_id', resident_id)
-      .order('booking_date', { ascending: false });
+      .eq('resident_id', resident_id);
+    
+    if (society_id) {
+      query = query.eq('society_id', society_id);
+    }
+
+    const { data, error } = await query.order('booking_date', { ascending: false });
     
     if (error) {
       // Fallback: if resident_id column is missing, try to fetch all and filter in memory
@@ -448,7 +529,7 @@ export const societyService = {
     let booking_id = '';
     try {
       const { count, error: countError } = await supabase
-        .from('bookings')
+        .from('booking')
         .select('*', { count: 'exact', head: true });
       
       const nextNumber = (count || 0) + 4; // Start from B004 if count is 0
@@ -466,10 +547,9 @@ export const societyService = {
     };
 
     const { data, error } = await supabase
-      .from('bookings')
+      .from('booking')
       .insert([bookingWithId])
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Error adding booking:', error);
@@ -494,10 +574,9 @@ export const societyService = {
         };
 
         const { data: retryData, error: retryError } = await supabase
-          .from('bookings')
+          .from('booking')
           .insert([minimalBooking])
-          .select()
-          .single();
+          .select();
         
         if (retryError) {
           console.error('Retry booking failed:', retryError);
@@ -515,70 +594,65 @@ export const societyService = {
               society_id: booking.society_id
             };
             const { data: finalData, error: finalError } = await supabase
-              .from('bookings')
+              .from('booking')
               .insert([superMinimalBooking])
-              .select()
-              .single();
+              .select();
             if (finalError) throw finalError;
-            return finalData as Booking;
+            return finalData && finalData.length > 0 ? finalData[0] as Booking : null;
           }
           throw retryError;
         }
-        return retryData as Booking;
+        return retryData && retryData.length > 0 ? retryData[0] as Booking : null;
       }
       throw error;
     }
-    return data as Booking;
+    return data && data.length > 0 ? data[0] as Booking : null;
   },
 
   async updateBookingStatus(booking_id: string, status: Booking['status']) {
     const { data, error } = await supabase
-      .from('bookings')
+      .from('booking')
       .update({ status })
       .eq('booking_id', booking_id)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       // Fallback: if booking_id column is missing, try to update by id if possible
       if (error.code === '42703' || error.message?.includes('booking_id')) {
         const { data: retryData, error: retryError } = await supabase
-          .from('bookings')
+          .from('booking')
           .update({ status })
           .eq('id', booking_id)
-          .select()
-          .single();
+          .select();
         if (retryError) throw retryError;
-        return retryData as Booking;
+        return retryData && retryData.length > 0 ? retryData[0] as Booking : null;
       }
       throw error;
     }
-    return data as Booking;
+    return data && data.length > 0 ? data[0] as Booking : null;
   },
 
   async updateBooking(booking_id: string, updates: Partial<Booking>) {
     const { data, error } = await supabase
-      .from('bookings')
+      .from('booking')
       .update(updates)
       .eq('booking_id', booking_id)
-      .select()
-      .single();
+      .select();
     
     if (error) {
       // Fallback: if booking_id column is missing, try to update by id if possible
       if (error.code === '42703' || error.message?.includes('booking_id')) {
         const { data: retryData, error: retryError } = await supabase
-          .from('bookings')
+          .from('booking')
           .update(updates)
           .eq('id', booking_id)
-          .select()
-          .single();
+          .select();
         if (retryError) throw retryError;
-        return retryData as Booking;
+        return retryData && retryData.length > 0 ? retryData[0] as Booking : null;
       }
       throw error;
     }
-    return data as Booking;
+    return data && data.length > 0 ? data[0] as Booking : null;
   },
 
   async updateResident(resident_id: string, updates: Partial<Resident>) {
@@ -586,11 +660,20 @@ export const societyService = {
       .from('resident')
       .update(updates)
       .eq('resident_id', resident_id)
-      .select()
-      .single();
+      .select();
     
     if (error) throw error;
-    return data as Resident;
+    return data && data.length > 0 ? data[0] as Resident : null;
+  },
+
+  async deleteMaintenanceRecord(id: string) {
+    const { error } = await supabase
+      .from('maintenance')
+      .delete()
+      .or(`maintenance_id.eq.${id},id.eq.${id}`);
+    
+    if (error) throw error;
+    return { success: true };
   },
 
   async uploadMedia(file: File) {
@@ -635,7 +718,7 @@ export const societyService = {
     if (compError) throw compError;
 
     // Seed Bookings
-    const { error: bookingError } = await supabase.from('bookings').upsert(initialBookings);
+    const { error: bookingError } = await supabase.from('booking').upsert(initialBookings);
     if (bookingError) throw bookingError;
 
     // Seed Amenities

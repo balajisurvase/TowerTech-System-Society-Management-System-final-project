@@ -76,6 +76,18 @@ export const societyService = {
     return { society, admin: admin ? admin[0] : null };
   },
 
+  async updateAdminProfile(society_id: string, admin_id: string, updates: Partial<Admin>) {
+    const { data, error } = await supabase
+      .from('admin')
+      .update(updates)
+      .eq('society_id', society_id)
+      .eq('admin_id', admin_id)
+      .select();
+    
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] as Admin : null;
+  },
+
   async resetPassword(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -370,7 +382,7 @@ export const societyService = {
         .from('complaint')
         .select('*', { count: 'exact', head: true });
       
-      const nextNumber = (count || 0) + 11; // Start from C011 if count is 0
+      const nextNumber = (count || 0) + 1; // Start from C001 if count is 0
       complaint_id = `C${nextNumber.toString().padStart(3, '0')}`;
     } catch (e) {
       const timestamp = Date.now().toString().slice(-6);
@@ -468,10 +480,14 @@ export const societyService = {
     return data && data.length > 0 ? data[0] as Media : null;
   },
 
-  async updateComplaintStatus(complaint_id: string, status: Complaint['status']) {
+  async updateComplaintStatus(complaint_id: string, status: Complaint['status'], comment?: string) {
+    const updates: any = { status };
+    if (comment) {
+      updates.admin_comment = comment;
+    }
     const { data, error } = await supabase
       .from('complaint')
-      .update({ status })
+      .update(updates)
       .eq('complaint_id', complaint_id)
       .select();
     
@@ -609,10 +625,14 @@ export const societyService = {
     return data && data.length > 0 ? data[0] as Booking : null;
   },
 
-  async updateBookingStatus(booking_id: string, status: Booking['status']) {
+  async updateBookingStatus(booking_id: string, status: Booking['status'], comment?: string) {
+    const updates: any = { status };
+    if (comment) {
+      updates.admin_comment = comment;
+    }
     const { data, error } = await supabase
       .from('booking')
-      .update({ status })
+      .update(updates)
       .eq('booking_id', booking_id)
       .select();
     
@@ -621,7 +641,7 @@ export const societyService = {
       if (error.code === '42703' || error.message?.includes('booking_id')) {
         const { data: retryData, error: retryError } = await supabase
           .from('booking')
-          .update({ status })
+          .update(updates)
           .eq('id', booking_id)
           .select();
         if (retryError) throw retryError;
@@ -666,11 +686,41 @@ export const societyService = {
     return data && data.length > 0 ? data[0] as Resident : null;
   },
 
+  async addResident(resident: Omit<Resident, 'id'>) {
+    const { data, error } = await supabase
+      .from('resident')
+      .insert([resident])
+      .select();
+    
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] as Resident : null;
+  },
+
   async deleteMaintenanceRecord(id: string) {
     const { error } = await supabase
       .from('maintenance')
       .delete()
       .or(`maintenance_id.eq.${id},id.eq.${id}`);
+    
+    if (error) throw error;
+    return { success: true };
+  },
+  
+  async deleteComplaint(id: string) {
+    const { error } = await supabase
+      .from('complaint')
+      .delete()
+      .or(`complaint_id.eq.${id},id.eq.${id}`);
+    
+    if (error) throw error;
+    return { success: true };
+  },
+
+  async deleteBooking(id: string) {
+    const { error } = await supabase
+      .from('booking')
+      .delete()
+      .or(`booking_id.eq.${id},id.eq.${id}`);
     
     if (error) throw error;
     return { success: true };

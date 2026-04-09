@@ -1,4 +1,4 @@
-export type Role = string;
+export type Role = 'admin' | 'resident' | 'security';
 
 export interface Resident {
   id?: string;
@@ -12,7 +12,18 @@ export interface Resident {
   phone: string;
   password?: string;
   society_id: string;
-  role?: string;
+  role?: Role;
+}
+
+export interface Security {
+  id: string;
+  security_id: string;
+  name: string;
+  phone: string;
+  password?: string;
+  society_id: string;
+  role: 'security';
+  shift?: string;
 }
 
 export interface MaintenanceRecord {
@@ -52,6 +63,7 @@ export interface Complaint {
   admin_id?: string;
   media?: string;
   media_url?: string;
+  admin_comment?: string;
 }
 
 export interface Booking {
@@ -72,6 +84,7 @@ export interface Booking {
   status: string;
   society_id: string;
   admin_id?: string;
+  admin_comment?: string;
   created_at?: string;
 }
 
@@ -102,6 +115,7 @@ export interface Media {
 export interface User {
   id: string;
   name: string;
+  admin_name?: string;
   email?: string;
   phone: string;
   role: Role;

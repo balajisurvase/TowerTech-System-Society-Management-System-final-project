@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, Building2, Eye, EyeOff, ShieldCheck, Users, X, UserPlus } from 'lucide-react';
+import { LogIn, Building2, Eye, EyeOff, ShieldCheck, Users, X, UserPlus, Lock, Mail } from 'lucide-react';
 import { User, Role } from '../types';
 import { supabase } from '../lib/supabase';
 import { societyService } from '../lib/societyService';
@@ -18,6 +18,16 @@ export default function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Theme colors based on role
+  const themeColor = role === 'resident' ? 'emerald' : 'indigo';
+  const themeHex = role === 'resident' ? '#10b981' : '#4f46e5';
+  const themeBg = role === 'resident' ? 'bg-emerald-600' : 'bg-indigo-600';
+  const themeHover = role === 'resident' ? 'hover:bg-emerald-700' : 'hover:bg-indigo-700';
+  const themeShadow = role === 'resident' ? 'shadow-emerald-100' : 'shadow-indigo-100';
+  const themeFocus = role === 'resident' ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-indigo-500/10 focus:border-indigo-500';
+  const themeText = role === 'resident' ? 'text-emerald-600' : 'text-indigo-600';
+  const themeIcon = role === 'resident' ? 'text-emerald-400' : 'text-indigo-400';
 
   // Forgot Password States
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -207,43 +217,58 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-sans selection:bg-indigo-100 selection:text-indigo-700">
+      {/* Background Decorative Elements - Subtle */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={`absolute -top-[10%] -left-[10%] w-[40%] h-[40%] ${role === 'resident' ? 'bg-emerald-500/5' : 'bg-indigo-500/5'} rounded-full blur-[100px] transition-all duration-700`} />
+        <div className={`absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] ${role === 'resident' ? 'bg-teal-500/5' : 'bg-purple-500/5'} rounded-full blur-[100px] transition-all duration-700`} />
+      </div>
+
       {/* Forgot Password Modal */}
       {showForgotModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full relative">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-10 max-w-md w-full relative border border-slate-100">
             <button 
               onClick={() => {
                 setShowForgotModal(false);
                 setResetMessage({ text: '', type: '' });
               }}
-              className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-8 top-8 text-slate-400 hover:text-slate-600 transition-all"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
             
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Forgot Password?</h3>
-            <p className="text-gray-500 mb-6">Enter your email address and we'll send you a link to reset your password.</p>
+            <div className="mb-8">
+              <div className={`w-14 h-14 ${role === 'resident' ? 'bg-emerald-50' : 'bg-indigo-50'} rounded-2xl flex items-center justify-center mb-6`}>
+                <Lock className={`w-7 h-7 ${themeText}`} />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">Reset Password</h3>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">Enter your email to receive a reset link.</p>
+            </div>
             
             {resetMessage.text && (
-              <div className={`p-4 rounded-xl text-sm font-medium mb-6 ${
-                resetMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'
+              <div className={`p-4 rounded-2xl text-xs font-bold mb-6 flex items-center gap-3 ${
+                resetMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'
               }`}>
+                <ShieldCheck className="w-4 h-4 flex-shrink-0" />
                 {resetMessage.text}
               </div>
             )}
 
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
-                <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="admin@example.com"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                  required
-                />
+            <form onSubmit={handleResetPassword} className="space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                <div className="relative group">
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:${themeText} transition-colors`} />
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                    className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    required
+                  />
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
@@ -252,18 +277,20 @@ export default function Login({ onLogin }: LoginProps) {
                     setShowForgotModal(false);
                     setResetMessage({ text: '', type: '' });
                   }}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition-all"
+                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-3.5 rounded-2xl transition-all text-xs uppercase tracking-widest"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resetLoading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center"
+                  className={`flex-[1.5] ${themeBg} ${themeHover} disabled:bg-slate-300 text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg ${themeShadow} text-xs uppercase tracking-widest`}
                 >
                   {resetLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : 'Send Link'}
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    'Send Link'
+                  )}
                 </button>
               </div>
             </form>
@@ -271,142 +298,173 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
       )}
 
-      {/* Landing Page Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-3xl" />
-      </div>
-
-      <div className="max-w-4xl w-full grid md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10">
-        {/* Left Side - Branding/Landing Info */}
-        <div className="hidden md:flex flex-col justify-center p-12 bg-blue-50">
-          <div className="mb-8">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200">
-              <Building2 className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-blue-900 mb-4 leading-tight">
-              TowerTech-Society <br />
-              <span className="text-blue-600 text-3xl">Management System</span>
-            </h1>
-            <p className="text-blue-700/70 text-lg">
-              Streamline your community living with our all-in-one digital platform.
-            </p>
-          </div>
+      <div className="max-w-[1000px] w-full grid md:grid-cols-2 bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] overflow-hidden relative z-10 border border-slate-100">
+        {/* Left Side - Visual/Branding */}
+        <div className={`hidden md:flex flex-col justify-between p-12 lg:p-16 ${role === 'resident' ? 'bg-emerald-950' : 'bg-slate-900'} text-white relative overflow-hidden transition-all duration-700`}>
+          <div className={`absolute top-0 right-0 w-64 h-64 ${role === 'resident' ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-full -mr-32 -mt-32 blur-3xl`} />
+          <div className={`absolute bottom-0 left-0 w-48 h-48 ${role === 'resident' ? 'bg-teal-500/10' : 'bg-purple-500/10'} rounded-full -ml-24 -mb-24 blur-2xl`} />
           
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <ShieldCheck className="w-5 h-5 text-blue-600" />
-              </div>
-              <p className="text-blue-900 font-medium">Secure & Private</p>
+          <div className="relative z-10">
+            <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-10 border border-white/10">
+              <Building2 className={`w-8 h-8 ${themeIcon}`} />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <Users className="w-5 h-5 text-blue-600" />
+            <h1 className="text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight mb-4">
+              TowerTech
+            </h1>
+            <h3 className={`text-xl lg:text-2xl font-semibold ${themeIcon} mb-8`}>
+              Society Management System
+            </h3>
+            
+            <div className="space-y-6">
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-2 ${role === 'resident' ? 'text-emerald-300' : 'text-indigo-300'}`}>
+                  SMART COMMUNITY MANAGEMENT
+                </p>
+                <p className="text-slate-400 text-base font-medium leading-relaxed max-w-sm">
+                  A simple digital platform to manage residential societies efficiently.
+                </p>
               </div>
-              <p className="text-blue-900 font-medium">Community Focused</p>
+
+              <div className="pt-6 border-t border-white/5">
+                <p className="text-slate-300 text-sm font-semibold leading-relaxed">
+                  Digital Solutions for Modern Communities
+                </p>
+                <p className="text-slate-500 text-xs mt-2 leading-relaxed max-w-xs">
+                  Manage maintenance payments, resolve complaints, and book amenities in one place.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                <ShieldCheck className={`w-5 h-5 ${themeIcon}`} />
+              </div>
+              <p className="text-sm font-bold text-slate-300">Secure • Reliable • Encrypted</p>
+            </div>
+            <div className="pt-8 border-t border-white/5">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">
+                © 2026 TowerTech Technologies
+              </p>
             </div>
           </div>
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="p-8 md:p-12">
-          <div className="text-center md:text-left mb-10">
-            <div className="md:hidden flex justify-center mb-6">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+        <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center">
+          <div className="mb-10">
+            <div className="md:hidden flex justify-center mb-8">
+              <div className={`w-14 h-14 ${themeBg} rounded-2xl flex items-center justify-center shadow-lg ${themeShadow}`}>
                 <Building2 className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-500 mt-2">Please enter your details to sign in</p>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
+              {role === 'resident' ? 'Resident Login' : 'Admin Login'}
+            </h2>
+            <p className="text-slate-500 text-sm font-medium">Welcome back! Please sign in to your account.</p>
           </div>
 
-          <div className="flex mb-8 bg-gray-100 p-1 rounded-xl">
-            <button
-              onClick={() => {
-                setRole('resident');
-                setLoginId('');
-                setPassword('');
-              }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                role === 'resident' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Resident
-            </button>
-            <button
-              onClick={() => {
-                setRole('admin');
-                setLoginId('');
-                setPassword('');
-              }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                role === 'admin' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Administrator
-            </button>
+          {/* Role Switcher */}
+          <div className="mb-8">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Mode</label>
+            <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+              <button
+                onClick={() => {
+                  setRole('resident');
+                  setLoginId('');
+                  setPassword('');
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  role === 'resident' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                Resident
+              </button>
+              <button
+                onClick={() => {
+                  setRole('admin');
+                  setLoginId('');
+                  setPassword('');
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  role === 'admin' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                Admin
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Society ID</label>
-              <input
-                type="text"
-                value={societyId}
-                onChange={(e) => setSocietyId(e.target.value)}
-                placeholder="GV2026"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                {role === 'resident' ? 'Resident ID' : 'Administrator ID'}
-              </label>
-              <input
-                type="text"
-                value={loginId}
-                onChange={(e) => setLoginId(e.target.value)}
-                placeholder={role === 'resident' ? 'e.g. R001' : 'e.g. A001'}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400"
-                required
-              />
-            </div>
-            
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-sm font-semibold text-gray-700">Password</label>
-                <button 
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                >
-                  Forgot?
-                </button>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Society ID</label>
+                <div className="relative group">
+                  <Building2 className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:${themeText} transition-colors`} />
+                  <input
+                    type="text"
+                    value={societyId}
+                    onChange={(e) => setSocietyId(e.target.value)}
+                    placeholder="GV2026"
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    required
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12 placeholder:text-gray-400"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  {role === 'resident' ? 'Resident ID' : 'Admin ID'}
+                </label>
+                <div className="relative group">
+                  <UserPlus className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:${themeText} transition-colors`} />
+                  <input
+                    type="text"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                    placeholder={role === 'resident' ? "e.g. R101" : "e.g. A001"}
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                  <button 
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className={`text-[10px] font-bold ${themeText} hover:opacity-80 uppercase tracking-widest`}
+                  >
+                    Forgot?
+                  </button>
+                </div>
+                <div className="relative group">
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:${themeText} transition-colors`} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={`w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-sm font-medium border border-red-100">
+              <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-xs font-bold border border-rose-100 flex items-center gap-2">
+                <X className="w-4 h-4 flex-shrink-0" />
                 {error}
               </div>
             )}
@@ -414,31 +472,34 @@ export default function Login({ onLogin }: LoginProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+              className={`w-full ${themeBg} ${themeHover} disabled:bg-slate-300 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg ${themeShadow} hover:shadow-lg active:scale-[0.98] uppercase tracking-widest text-xs mt-2`}
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
+                  <LogIn className="w-4 h-4" />
                   Sign In
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 pt-8 border-t border-gray-100 space-y-4">
+          <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center gap-4">
             <button
               onClick={() => setView('register')}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
+              className={`w-full group flex flex-col items-center gap-2 p-6 bg-gradient-to-r from-slate-50 to-white rounded-3xl border border-slate-100 hover:border-${themeColor}-200 transition-all shadow-sm hover:shadow-md`}
             >
-              <UserPlus className="w-5 h-5" />
-              Create Society Account
+              <div className={`w-10 h-10 bg-white rounded-xl flex items-center justify-center ${themeText} shadow-sm mb-1`}>
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <span className={`text-sm font-bold ${themeText} uppercase tracking-widest`}>
+                Register Your Society
+              </span>
+              <p className="text-slate-400 text-[10px] font-medium text-center">
+                Create a new society account to start managing residents and services.
+              </p>
             </button>
-          </div>
-          
-          <div className="mt-10 text-center text-gray-400 text-xs">
-            <p>© 2026 TowerTech-Society Management. All rights reserved.</p>
           </div>
         </div>
       </div>

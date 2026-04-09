@@ -4,8 +4,11 @@ import { initialResidents, initialMaintenance, initialComplaints, initialBooking
 import { societyService } from './lib/societyService';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Login from './components/Login';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 import AdminDashboard from './components/AdminDashboard';
 import ResidentDashboard from './components/ResidentDashboard';
+import { Toaster } from 'sonner';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -109,49 +112,60 @@ export default function App() {
     : null;
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
+      <Toaster position="top-center" richColors />
       {!isSupabaseConfigured && (
-        <div className="fixed top-0 left-0 right-0 bg-emerald-600 text-white px-4 py-2 text-sm z-[9999] shadow-lg flex items-center justify-between">
+        <div className="fixed top-0 left-0 right-0 bg-blue-600 text-white px-4 py-2 text-[10px] z-[9999] shadow-lg flex items-center justify-between font-black uppercase tracking-widest">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <span><strong>Prototype Mode:</strong> Supabase is not connected. Using local sample data.</span>
+            <span>Prototype Mode: Using local sample data</span>
           </div>
           <button 
             onClick={() => alert('To connect Supabase:\n1. Open the "Secrets" panel in AI Studio.\n2. Add VITE_SUPABASE_URL (your project URL).\n3. Add VITE_SUPABASE_ANON_KEY (your anon key).\n4. The app will automatically sync once configured.')}
-            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors"
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-[10px] font-black transition-colors"
           >
             Setup Instructions
           </button>
         </div>
       )}
+      <Sidebar 
+        isAdmin={!!user.admin_id} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        onLogout={handleLogout} 
+      />
       
-      <main className="min-h-screen">
-        {user.admin_id ? (
-          <AdminDashboard 
-            user={user}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            residents={residents}
-            maintenance={maintenance}
-            complaints={complaints}
-            bookings={bookings}
-            onRefresh={fetchData}
-            onLogout={handleLogout}
-          />
-        ) : (
-          currentResident && (
-            <ResidentDashboard 
+      <main className="flex-1 flex flex-col min-w-0">
+        <Header user={user} />
+
+        {/* Content Area */}
+        <div className="flex-1 p-4 md:p-6 bg-[#F8FAFC]">
+          {user.admin_id ? (
+            <AdminDashboard 
+              user={user}
               activeTab={activeTab}
-              resident={currentResident}
+              setActiveTab={setActiveTab}
+              residents={residents}
               maintenance={maintenance}
               complaints={complaints}
               bookings={bookings}
               onRefresh={fetchData}
-              setActiveTab={setActiveTab}
-              onLogout={handleLogout}
             />
-          )
-        )}
+          ) : (
+            currentResident && (
+              <ResidentDashboard 
+                activeTab={activeTab}
+                resident={currentResident}
+                maintenance={maintenance}
+                complaints={complaints}
+                bookings={bookings}
+                onRefresh={fetchData}
+                setActiveTab={setActiveTab}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+        </div>
       </main>
     </div>
   );

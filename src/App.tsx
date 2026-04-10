@@ -26,7 +26,7 @@ export default function App() {
     setLoading(true);
 
     if (!isSupabaseConfigured) {
-      setResidents(initialResidents);
+      setResidents(initialResidents.filter(r => r.resident_id !== 'R081' && r.name.toLowerCase() !== 'dhilipan'));
       setMaintenance(initialMaintenance);
       setComplaints(initialComplaints);
       setBookings(initialBookings);
@@ -42,7 +42,8 @@ export default function App() {
         societyService.getBookings()
       ]);
       
-      const uniqueResidents = Array.from(new Map(resData.map(r => [r.resident_id, r])).values());
+      const uniqueResidents = Array.from(new Map(resData.map(r => [r.resident_id, r])).values())
+        .filter(r => r.resident_id !== 'R081' && r.name.toLowerCase() !== 'dhilipan');
       setResidents(uniqueResidents);
       setMaintenance(mainData);
       setComplaints(compData);
@@ -50,7 +51,7 @@ export default function App() {
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
       // Fallback to initial data for prototype if Supabase tables are not set up
-      setResidents(initialResidents);
+      setResidents(initialResidents.filter(r => r.resident_id !== 'R081' && r.name.toLowerCase() !== 'dhilipan'));
       setMaintenance(initialMaintenance);
       setComplaints(initialComplaints);
       setBookings(initialBookings);
@@ -94,6 +95,11 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
   };
+
+  // Scroll to top on tab change or login
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab, user?.id]);
 
   if (loading && !user) {
     return (
@@ -151,19 +157,33 @@ export default function App() {
               bookings={bookings}
               onRefresh={fetchData}
             />
+          ) : currentResident ? (
+            <ResidentDashboard 
+              activeTab={activeTab}
+              resident={currentResident}
+              maintenance={maintenance}
+              complaints={complaints}
+              bookings={bookings}
+              onRefresh={fetchData}
+              setActiveTab={setActiveTab}
+              onLogout={handleLogout}
+            />
           ) : (
-            currentResident && (
-              <ResidentDashboard 
-                activeTab={activeTab}
-                resident={currentResident}
-                maintenance={maintenance}
-                complaints={complaints}
-                bookings={bookings}
-                onRefresh={fetchData}
-                setActiveTab={setActiveTab}
-                onLogout={handleLogout}
-              />
-            )
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mb-4">
+                <Users className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Resident Profile Not Found</h3>
+              <p className="text-slate-500 max-w-md">
+                We couldn't find your resident profile in the database. Please contact your society administrator.
+              </p>
+              <button 
+                onClick={handleLogout}
+                className="mt-6 px-6 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
+              >
+                Logout & Try Again
+              </button>
+            </div>
           )}
         </div>
       </main>

@@ -105,17 +105,18 @@ export default function RegisterSociety({ onBack, onSuccess }: RegisterSocietyPr
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 md:p-8 overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
       </div>
 
-      <div className="max-w-4xl w-full bg-white/95 backdrop-blur-xl rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden relative z-10 border border-white/20 h-full max-h-[90vh] flex flex-col">
+      <div className="w-full min-h-screen bg-white overflow-hidden relative z-10 flex flex-col">
         <div className="p-8 md:p-12 overflow-y-auto custom-scrollbar">
-          <button 
-            onClick={onBack}
+          <div className="max-w-4xl mx-auto w-full">
+            <button 
+              onClick={onBack}
             className="group flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-all mb-8 font-black uppercase tracking-widest text-[10px]"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -264,7 +265,7 @@ export default function RegisterSociety({ onBack, onSuccess }: RegisterSocietyPr
                         type="number"
                         name="towers"
                         min="1"
-                        value={formData.towers}
+                        value={formData.towers || ''}
                         onChange={handleChange}
                         className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
                         required
@@ -278,7 +279,7 @@ export default function RegisterSociety({ onBack, onSuccess }: RegisterSocietyPr
                       type="number"
                       name="floors_per_tower"
                       min="1"
-                      value={formData.floors_per_tower}
+                      value={formData.floors_per_tower || ''}
                       onChange={handleChange}
                       className="w-full px-6 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
                       required
@@ -291,7 +292,7 @@ export default function RegisterSociety({ onBack, onSuccess }: RegisterSocietyPr
                       type="number"
                       name="flats_per_floor"
                       min="1"
-                      value={formData.flats_per_floor}
+                      value={formData.flats_per_floor || ''}
                       onChange={handleChange}
                       className="w-full px-6 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
                       required
@@ -353,6 +354,7 @@ export default function RegisterSociety({ onBack, onSuccess }: RegisterSocietyPr
               </div>
             )}
           </form>
+          </div>
         </div>
         
         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center items-center">

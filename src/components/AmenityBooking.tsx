@@ -374,7 +374,8 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
                             b.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
                             b.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
                           }`}>
-                            {b.status}
+                            {b.status === 'Approved' ? 'APPROVED' : 
+                             b.status === 'Pending' ? 'PENDING' : 'REJECTED'}
                           </span>
                         </td>
                       </tr>

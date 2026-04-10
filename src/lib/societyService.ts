@@ -687,13 +687,31 @@ export const societyService = {
   },
 
   async addResident(resident: Omit<Resident, 'id'>) {
+    let residentData = { ...resident };
+    
+    if (!residentData.resident_id) {
+      const timestamp = Date.now().toString().slice(-4);
+      const random = Math.floor(100 + Math.random() * 900);
+      residentData.resident_id = `R-${timestamp}${random}`;
+    }
+
     const { data, error } = await supabase
       .from('resident')
-      .insert([resident])
+      .insert([residentData])
       .select();
     
     if (error) throw error;
     return data && data.length > 0 ? data[0] as Resident : null;
+  },
+
+  async deleteResident(resident_id: string) {
+    const { error } = await supabase
+      .from('resident')
+      .delete()
+      .eq('resident_id', resident_id);
+    
+    if (error) throw error;
+    return { success: true };
   },
 
   async deleteMaintenanceRecord(id: string) {
@@ -722,6 +740,33 @@ export const societyService = {
       .delete()
       .or(`booking_id.eq.${id},id.eq.${id}`);
     
+    if (error) throw error;
+    return { success: true };
+  },
+
+  async deleteAllResidents(society_id: string) {
+    const { error } = await supabase
+      .from('resident')
+      .delete()
+      .eq('society_id', society_id);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  async deleteAllComplaints(society_id: string) {
+    const { error } = await supabase
+      .from('complaint')
+      .delete()
+      .eq('society_id', society_id);
+    if (error) throw error;
+    return { success: true };
+  },
+
+  async deleteAllBookings(society_id: string) {
+    const { error } = await supabase
+      .from('booking')
+      .delete()
+      .eq('society_id', society_id);
     if (error) throw error;
     return { success: true };
   },

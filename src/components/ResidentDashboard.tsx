@@ -47,12 +47,13 @@ export default function ResidentDashboard({
 }: ResidentDashboardProps & { setActiveTab: (tab: string) => void }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [profileData, setProfileData] = useState({
     name: resident.name,
     phone: resident.phone || '',
     email: resident.email || '',
-    password: '',
+    oldPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
@@ -230,24 +231,52 @@ export default function ResidentDashboard({
         email: profileData.email
       };
       
-      if (profileData.newPassword) {
-        updatePayload.password = profileData.newPassword;
-      }
-
       await societyService.updateResident(resident.resident_id, updatePayload);
       toast.success('Profile updated successfully');
       setShowEditProfile(false);
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Failed to update profile: ' + error.message);
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!profileData.oldPassword) {
+      toast.error('Please enter your old password');
+      return;
+    }
+    if (profileData.newPassword !== profileData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (profileData.newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setUpdatingProfile(true);
+    try {
+      await societyService.updateResident(resident.resident_id, {
+        password: profileData.newPassword
+      });
+      toast.success('Password updated successfully');
+      setShowChangePassword(false);
       
       // Clear password fields
       setProfileData(prev => ({
         ...prev,
+        oldPassword: '',
         newPassword: '',
         confirmPassword: ''
       }));
       
       onRefresh();
     } catch (error: any) {
-      toast.error('Failed to update profile: ' + error.message);
+      toast.error('Failed to update password: ' + error.message);
     } finally {
       setUpdatingProfile(false);
     }
@@ -266,8 +295,13 @@ export default function ResidentDashboard({
           <h1 className="text-3xl font-black tracking-tight">TowerTech-Society</h1>
         </div>
         <div className="space-y-2">
-          <h2 className="text-4xl font-black tracking-tight">Welcome, {resident.name}</h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-blue-200 font-medium">
+          <h2 className="text-4xl font-black tracking-tight">
+            Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-rose-300 drop-shadow-sm">{resident.name}!</span>
+          </h2>
+          <p className="text-blue-100/80 text-lg font-medium max-w-2xl leading-relaxed">
+            Welcome to your TowerTech Resident Dashboard. Here you can manage your maintenance, bookings, and complaints.
+          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-blue-200 font-medium pt-2">
             <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-lg border border-white/5">
               <span className="text-[10px] font-black uppercase tracking-tighter opacity-40">Flat:</span>
               <span className="text-xs font-black uppercase tracking-widest">T-{resident.tower} / {resident.flat}</span>
@@ -342,51 +376,103 @@ export default function ResidentDashboard({
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold"
             />
           </div>
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Change Password (Optional)</p>
-            <div className="space-y-3">
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="New Password"
-                  value={profileData.newPassword}
-                  onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-sm"
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <input 
-                type={showPassword ? "text" : "password"}
-                placeholder="Confirm New Password"
-                value={profileData.confirmPassword}
-                onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-sm"
-              />
-            </div>
+          <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
+            <button 
+              type="button"
+              onClick={() => {
+                setShowEditProfile(false);
+                setShowChangePassword(true);
+              }}
+              className="w-full bg-slate-100 text-slate-600 font-black py-3 rounded-xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+            >
+              Change Password
+            </button>
+            <button 
+              type="submit"
+              disabled={updatingProfile}
+              className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+            >
+              {updatingProfile ? (
+                <>
+                  <Clock className="w-4 h-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </button>
           </div>
-          <button 
-            type="submit"
-            disabled={updatingProfile}
-            className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-          >
-            {updatingProfile ? (
-              <>
-                <Clock className="w-4 h-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                Save Changes
-              </>
-            )}
+        </form>
+      </div>
+    </div>
+  );
+
+  const renderChangePasswordModal = () => (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden">
+        <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-black tracking-tight">Change Password</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Secure your resident account</p>
+          </div>
+          <button onClick={() => setShowChangePassword(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <X className="w-6 h-6" />
           </button>
+        </div>
+        <form onSubmit={handleChangePassword} className="p-8 space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Old Password</label>
+            <input 
+              type="password" 
+              required
+              value={profileData.oldPassword}
+              onChange={(e) => setProfileData({ ...profileData, oldPassword: e.target.value })}
+              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+            <input 
+              type="password" 
+              required
+              value={profileData.newPassword}
+              onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })}
+              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
+            <input 
+              type="password" 
+              required
+              value={profileData.confirmPassword}
+              onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowChangePassword(false)}
+              className="flex-1 px-6 py-4 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={updatingProfile}
+              className="flex-[2] px-6 py-4 rounded-xl bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+            >
+              {updatingProfile ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                'Update Password'
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -402,7 +488,7 @@ export default function ResidentDashboard({
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110"></div>
               <div className="relative z-10">
                 <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3">
-                  Hello, <span className="text-blue-600">{resident.name}</span>!
+                  Hello, <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">{resident.name}</span>!
                 </h2>
                 <p className="text-slate-500 font-medium max-w-lg text-lg leading-relaxed">
                   Welcome to your TowerTech Resident Dashboard. Here you can manage your maintenance, bookings, and complaints.
@@ -428,7 +514,7 @@ export default function ResidentDashboard({
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Maintenance Status</p>
                   <h3 className="text-2xl font-black">
-                    {residentMaintenance.some(m => m.status === 'Unpaid') ? 'Payment Due' : 'All Paid ✔'}
+                    {residentMaintenance.some(m => m.status === 'Unpaid') ? 'Payment Due' : 'All Paid'}
                   </h3>
                 </div>
                 <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
@@ -521,8 +607,8 @@ export default function ResidentDashboard({
                           <p className="text-[10px] font-bold text-slate-400">₹{m.amount}</p>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase ${m.status === 'Paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {m.status}
+                      <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${m.status === 'Paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {m.status === 'Paid' ? 'PAID' : 'UNPAID'}
                       </span>
                     </div>
                   ))}
@@ -548,11 +634,12 @@ export default function ResidentDashboard({
                           <p className="text-[10px] font-bold text-slate-400">{b.booking_date}</p>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase ${
+                      <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${
                         b.status === 'Approved' ? 'text-emerald-600' : 
                         b.status === 'Pending' ? 'text-amber-600' : 'text-rose-600'
                       }`}>
-                        {b.status}
+                        {b.status === 'Approved' ? 'APPROVED' : 
+                         b.status === 'Pending' ? 'PENDING' : 'REJECTED'}
                       </span>
                     </div>
                   ))}
@@ -674,10 +761,10 @@ export default function ResidentDashboard({
                           <td className="px-8 py-6 font-black text-slate-900">₹{m.amount}</td>
                           <td className="px-8 py-6 text-slate-500">{m.due_date}</td>
                           <td className="px-8 py-6">
-                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase ${
+                            <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit ${
                               m.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                             }`}>
-                              {m.status === 'Paid' ? 'Paid' : 'Unpaid'}
+                              {m.status === 'Paid' ? 'PAID' : 'UNPAID'}
                             </span>
                           </td>
                         </tr>
@@ -809,13 +896,15 @@ export default function ResidentDashboard({
                           )}
                         </div>
                         <div className="flex flex-col items-end justify-between gap-4">
-                          <span className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-sm ${
+                          <span className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-1.5 ${
                             c.status === 'Done' || c.status === 'Resolved' ? 'bg-emerald-600 text-white' : 
                             c.status === 'Pending' ? 'bg-amber-500 text-white' : 
                             c.status === 'Process' ? 'bg-indigo-600 text-white' :
                             'bg-rose-600 text-white'
                           }`}>
-                            {c.status}
+                            {c.status === 'Done' || c.status === 'Resolved' ? 'DONE' : 
+                             c.status === 'Pending' ? 'PENDING' : 
+                             c.status === 'Process' ? 'PROCESS' : 'REJECT'}
                           </span>
                           {c.media && (
                             <button 
@@ -916,11 +1005,12 @@ export default function ResidentDashboard({
                                 </div>
                               </td>
                               <td className="px-8 py-6">
-                                <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase ${
+                                <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit ${
                                   b.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
                                   b.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
                                 }`}>
-                                  {b.status}
+                                  {b.status === 'Approved' ? 'APPROVED' : 
+                                   b.status === 'Pending' ? 'PENDING' : 'REJECTED'}
                                 </span>
                               </td>
                             </tr>
@@ -1070,6 +1160,9 @@ export default function ResidentDashboard({
       <div className="">
         {renderContent()}
       </div>
+
+      {showEditProfile && renderEditProfileModal()}
+      {showChangePassword && renderChangePasswordModal()}
 
       {/* Image Preview Modal */}
       {selectedImage && (

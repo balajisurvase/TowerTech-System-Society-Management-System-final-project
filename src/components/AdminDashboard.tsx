@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { User, Resident, MaintenanceRecord, Complaint, Booking, Amenity } from '../types';
 import { societyService } from '../lib/societyService';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { 
@@ -108,7 +109,7 @@ export default function AdminDashboard({
   const [residentFloorFilter, setResidentFloorFilter] = useState('All');
   const [residentFlatFilter, setResidentFlatFilter] = useState('All');
 
-  const [complaintFilter, setComplaintFilter] = useState<'All' | 'Pending' | 'In Progress' | 'Done' | 'Rejected'>('All');
+  const [complaintFilter, setComplaintFilter] = useState<'All' | 'Pending' | 'Process' | 'Done' | 'Rejected'>('All');
   const [bookingFilter, setBookingFilter] = useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export default function AdminDashboard({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [complaintToComment, setComplaintToComment] = useState<{ id: string, status: 'Done' | 'Rejected' | 'Process' } | null>(null);
+  const [complaintToComment, setComplaintToComment] = useState<{ id: string, status: 'Pending' | 'Done' | 'Rejected' | 'Process' } | null>(null);
   const [adminComment, setAdminComment] = useState('');
   const [bookingEditData, setBookingEditData] = useState({
     start_time: '',
@@ -276,7 +277,7 @@ export default function AdminDashboard({
     }
   };
 
-  const handleUpdateComplaintStatus = async (complaintId: string, status: 'Pending' | 'In Progress' | 'Done' | 'Rejected' | 'Process', comment?: string) => {
+  const handleUpdateComplaintStatus = async (complaintId: string, status: 'Pending' | 'Done' | 'Rejected' | 'Process', comment?: string) => {
     setUpdating(complaintId);
     try {
       await societyService.updateComplaintStatus(complaintId, status as any, comment);
@@ -290,6 +291,9 @@ export default function AdminDashboard({
       setUpdating(null);
     }
   };
+
+  const [bookingToComment, setBookingToComment] = useState<{ id: string, status: 'Approved' | 'Rejected' } | null>(null);
+  const [bookingComment, setBookingComment] = useState('');
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'Approved' | 'Rejected' | 'Pending', comment?: string) => {
     setUpdating(bookingId);
@@ -331,6 +335,102 @@ export default function AdminDashboard({
     try {
       await societyService.deleteBooking(id);
       toast.success('Booking deleted successfully');
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Delete failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteResident = async (residentId: string) => {
+    if (!window.confirm('Are you sure you want to delete this resident?')) return;
+    
+    setUpdating(residentId);
+    try {
+      await societyService.deleteResident(residentId);
+      toast.success('Resident deleted successfully');
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Delete failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteComplaint = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this complaint?')) return;
+    
+    setUpdating(id);
+    try {
+      await societyService.deleteComplaint(id);
+      toast.success('Complaint deleted successfully');
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Delete failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    
+    setUpdating('changing-password');
+    try {
+      // In a real app, we'd verify old password first. 
+      // For this prototype, we'll just update it.
+      await societyService.updateAdminProfile(user.society_id!, user.admin_id!, {
+        password: passwordData.newPassword
+      });
+      toast.success('Password changed successfully');
+      setShowChangePasswordModal(false);
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      toast.error('Failed to change password: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteAllResidents = async () => {
+    if (!window.confirm('CRITICAL: Are you sure you want to delete ALL residents? This cannot be undone.')) return;
+    setUpdating('delete-all');
+    try {
+      await societyService.deleteAllResidents(user.society_id!);
+      toast.success('All residents deleted successfully');
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Delete failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteAllComplaints = async () => {
+    if (!window.confirm('CRITICAL: Are you sure you want to delete ALL complaints? This cannot be undone.')) return;
+    setUpdating('delete-all');
+    try {
+      await societyService.deleteAllComplaints(user.society_id!);
+      toast.success('All complaints deleted successfully');
+      onRefresh();
+    } catch (error: any) {
+      toast.error('Delete failed: ' + error.message);
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDeleteAllBookings = async () => {
+    if (!window.confirm('CRITICAL: Are you sure you want to delete ALL bookings? This cannot be undone.')) return;
+    setUpdating('delete-all');
+    try {
+      await societyService.deleteAllBookings(user.society_id!);
+      toast.success('All bookings deleted successfully');
       onRefresh();
     } catch (error: any) {
       toast.error('Delete failed: ' + error.message);
@@ -387,6 +487,7 @@ export default function AdminDashboard({
           resident_name: resident.name,
           flat_no: resident.flat,
           tower: resident.tower,
+          floor: resident.floor,
           month: fullMonth,
           amount: billFormData.amount,
           status: 'Unpaid' as const,
@@ -408,6 +509,7 @@ export default function AdminDashboard({
           resident_name: resident.name,
           flat_no: resident.flat,
           tower: resident.tower,
+          floor: resident.floor,
           month: fullMonth,
           amount: billFormData.amount,
           status: 'Unpaid',
@@ -478,49 +580,70 @@ export default function AdminDashboard({
 
   const filteredResidents = residents
     .filter(r => {
-      const matchesSearch = r.resident_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          r.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = String(r.resident_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(r.name || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTower = residentTowerFilter === 'All' || r.tower === residentTowerFilter;
       const matchesFloor = residentFloorFilter === 'All' || r.floor.toString() === residentFloorFilter;
       const matchesFlat = residentFlatFilter === 'All' || r.flat === residentFlatFilter;
       
       return matchesSearch && matchesTower && matchesFloor && matchesFlat;
     })
-    .sort((a, b) => a.resident_id.localeCompare(b.resident_id, undefined, { numeric: true, sensitivity: 'base' }));
+    .sort((a, b) => {
+      // Sort by Tower primarily
+      const towerCompare = String(a.tower || '').localeCompare(String(b.tower || ''));
+      if (towerCompare !== 0) return towerCompare;
+      
+      // Then by Floor
+      const floorA = a.floor || 0;
+      const floorB = b.floor || 0;
+      if (floorA !== floorB) return floorA - floorB;
+      
+      // Then by Flat
+      return String(a.flat || '').localeCompare(String(b.flat || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
 
   const filteredMaintenance = maintenance
     .filter(m => {
-      const matchesSearch = (m.resident_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (m.resident_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (m.flat_no || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = String(m.resident_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(m.resident_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(m.flat_no || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesMonth = selectedMonth === 'All' || m.month === selectedMonth;
       const matchesStatus = maintenanceFilter === 'All' || m.status === maintenanceFilter;
       const matchesTower = maintenanceTowerFilter === 'All' || m.tower === maintenanceTowerFilter;
-      const matchesFloor = maintenanceFloorFilter === 'All' || m.floor?.toString() === maintenanceFloorFilter;
       const matchesFlat = maintenanceFlatFilter === 'All' || m.flat_no === maintenanceFlatFilter;
       
-      return matchesSearch && matchesMonth && matchesStatus && matchesTower && matchesFloor && matchesFlat;
+      return matchesSearch && matchesMonth && matchesStatus && matchesTower && matchesFlat;
     })
     .sort((a, b) => {
-      // Sort by Resident ID primarily
-      const resIdA = a.resident_id || '';
-      const resIdB = b.resident_id || '';
-      const resCompare = resIdA.localeCompare(resIdB, undefined, { numeric: true, sensitivity: 'base' });
+      // Sort by Tower primarily
+      const towerA = String(a.tower || '');
+      const towerB = String(b.tower || '');
+      const towerCompare = towerA.localeCompare(towerB);
+      if (towerCompare !== 0) return towerCompare;
+
+      // Then by Floor
+      const floorA = a.floor || 0;
+      const floorB = b.floor || 0;
+      if (floorA !== floorB) return floorA - floorB;
+
+      // Then by Flat
+      const flatA = String(a.flat_no || '');
+      const flatB = String(b.flat_no || '');
+      const flatCompare = flatA.localeCompare(flatB, undefined, { numeric: true, sensitivity: 'base' });
+      if (flatCompare !== 0) return flatCompare;
       
-      if (resCompare !== 0) return resCompare;
-      
-      // Then by Maintenance ID
-      const idA = a.maintenance_id || a.id || '';
-      const idB = b.maintenance_id || b.id || '';
-      return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+      // Then by Resident ID
+      const resIdA = String(a.resident_id || '');
+      const resIdB = String(b.resident_id || '');
+      return resIdA.localeCompare(resIdB, undefined, { numeric: true, sensitivity: 'base' });
     });
 
   const filteredComplaints = complaints
     .filter(c => {
-      const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.complaint_id || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = String(c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(c.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(c.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(c.complaint_id || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = complaintFilter === 'All' ? true : 
                            (complaintFilter === 'Done' ? (c.status === 'Done' || c.status === 'Resolved') : c.status === complaintFilter);
       return matchesSearch && matchesStatus;
@@ -533,10 +656,10 @@ export default function AdminDashboard({
 
   const filteredBookings = bookings
     .filter(b => {
-      const matchesSearch = (b.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.amenity_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.event_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (b.booking_id || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = String(b.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(b.amenity_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(b.event_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(b.booking_id || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = bookingFilter === 'All' ? true : b.status === bookingFilter;
       return matchesSearch && matchesStatus;
     })
@@ -547,15 +670,34 @@ export default function AdminDashboard({
     });
 
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [profileFormData, setProfileFormData] = useState({
     name: 'Manasi Pawar',
     phone: '9876543210',
     email: 'admin@gvsociety.com',
-    password: '••••••••'
+    password: '',
+    confirmPassword: ''
   });
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSupabaseConfigured) {
+      toast.error('Cannot update profile in Prototype Mode. Please configure Supabase.');
+      return;
+    }
+    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
     toast.success('Profile updated successfully');
     setShowProfileModal(false);
   };
@@ -806,6 +948,13 @@ export default function AdminDashboard({
                     <UserPlus className="w-4 h-4" />
                     Add Resident
                   </button>
+                  <button 
+                    onClick={handleDeleteAllResidents}
+                    className="px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-black rounded-xl hover:bg-rose-100 transition-all border border-rose-100 flex items-center gap-2 uppercase tracking-widest"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </button>
                   <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl uppercase tracking-widest border border-indigo-100">
                     Total: {filteredResidents.length}
                   </span>
@@ -818,9 +967,10 @@ export default function AdminDashboard({
                 <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100">
                   <tr className="text-slate-400 text-[9px] font-black uppercase tracking-widest">
                     <th className="px-6 py-3">#</th>
-                    <th className="px-6 py-3">Resident ID</th>
                     <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Location</th>
+                    <th className="px-6 py-3">Floor</th>
+                    <th className="px-6 py-3">Tower</th>
+                    <th className="px-6 py-3">Flat</th>
                     <th className="px-6 py-3">Contact</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
@@ -830,9 +980,6 @@ export default function AdminDashboard({
                     <tr key={r.resident_id} className="hover:bg-slate-50/80 transition-colors group text-[11px]">
                       <td className="px-6 py-3 font-bold text-slate-400">{index + 1}</td>
                       <td className="px-6 py-3">
-                        <span className="font-extrabold text-indigo-600 tracking-tight">{r.resident_id}</span>
-                      </td>
-                      <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
                             {r.name.charAt(0)}
@@ -841,12 +988,12 @@ export default function AdminDashboard({
                         </div>
                       </td>
                       <td className="px-6 py-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded uppercase">T-{r.tower}</span>
-                          <span className="text-[9px] font-black bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded uppercase">F-{r.floor}</span>
-                          <span className="font-bold text-slate-700">{r.flat}</span>
-                        </div>
+                        <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg uppercase tracking-wider border border-emerald-100">Floor {r.floor}</span>
                       </td>
+                      <td className="px-6 py-3">
+                        <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 px-2 py-1 rounded-lg uppercase tracking-wider border border-indigo-100">Tower {r.tower}</span>
+                      </td>
+                      <td className="px-6 py-3 font-bold text-slate-700">{r.flat}</td>
                       <td className="px-6 py-3">
                         <div className="space-y-0.5">
                           <p className="font-medium text-slate-600">{r.email}</p>
@@ -875,6 +1022,13 @@ export default function AdminDashboard({
                             title="Edit Profile"
                           >
                             <Edit className="w-3 h-3" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteResident(r.resident_id)}
+                            className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-100"
+                            title="Delete Resident"
+                          >
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </td>
@@ -1021,18 +1175,6 @@ export default function AdminDashboard({
                     </div>
 
                     <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Floor</span>
-                      <select 
-                        value={maintenanceFloorFilter}
-                        onChange={(e) => setMaintenanceFloorFilter(e.target.value)}
-                        className="bg-transparent outline-none text-[10px] font-black text-slate-700 cursor-pointer"
-                      >
-                        <option value="All">All</option>
-                        {Array.from(new Set(residents.map(r => r.floor.toString()))).sort((a,b) => parseInt(a)-parseInt(b)).map(f => <option key={f} value={f}>Floor {f}</option>)}
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flat</span>
                       <select 
                         value={maintenanceFlatFilter}
@@ -1053,7 +1195,6 @@ export default function AdminDashboard({
                       <th className="px-6 py-3">Bill ID</th>
                       <th className="px-6 py-3">Resident ID</th>
                       <th className="px-6 py-3">Tower</th>
-                      <th className="px-6 py-3">Floor</th>
                       <th className="px-6 py-3">Flat</th>
                       <th className="px-6 py-3">Amount</th>
                       <th className="px-6 py-3">Status</th>
@@ -1067,7 +1208,7 @@ export default function AdminDashboard({
                       } hover:bg-indigo-50/40 text-[11px]`}>
                         <td className="px-6 py-3">
                           <span className="font-black text-indigo-600 tracking-tight">
-                            M{String(index + 1).padStart(3, '0')}
+                            {m.maintenance_id || `M-${String(index + 1).padStart(3, '0')}`}
                           </span>
                         </td>
                         <td className="px-6 py-3">
@@ -1075,9 +1216,6 @@ export default function AdminDashboard({
                         </td>
                         <td className="px-6 py-3">
                           <span className="font-black text-slate-600">Tower {m.tower}</span>
-                        </td>
-                        <td className="px-6 py-3">
-                          <span className="font-black text-slate-600">{m.floor || '-'}</span>
                         </td>
                         <td className="px-6 py-3">
                           <span className="font-black text-slate-700">{m.flat_no}</span>
@@ -1107,7 +1245,7 @@ export default function AdminDashboard({
                             <button 
                               onClick={() => handleDeleteMaintenance(m.maintenance_id || m.id!)}
                               className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-all border border-rose-100"
-                              title="Delete"
+                              title="Delete Record"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -1156,6 +1294,13 @@ export default function AdminDashboard({
                       <option value="Rejected">Rejected</option>
                     </select>
                   </div>
+                  <button 
+                    onClick={handleDeleteAllComplaints}
+                    className="px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-black rounded-xl hover:bg-rose-100 transition-all border border-rose-100 flex items-center gap-2 uppercase tracking-widest"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </button>
                 </div>
               </div>
 
@@ -1208,7 +1353,7 @@ export default function AdminDashboard({
                           <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
                             c.status === 'Done' || c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' : 
                             c.status === 'Pending' ? 'bg-amber-100 text-amber-700' : 
-                            c.status === 'Process' || c.status === 'In Progress' ? 'bg-indigo-100 text-indigo-700' :
+                            c.status === 'Process' ? 'bg-indigo-100 text-indigo-700' :
                             'bg-rose-100 text-rose-700'
                           }`}>
                             {c.status}
@@ -1219,20 +1364,48 @@ export default function AdminDashboard({
                             <button 
                               onClick={() => setSelectedComplaint(c)}
                               className="px-3 py-1 rounded-lg border border-slate-200 text-indigo-600 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all"
+                              title="View Details"
                             >
                               View
                             </button>
+                            {(c.status !== 'Done' && c.status !== 'Resolved' && c.status !== 'Rejected') && (
+                              <>
+                                {c.status !== 'Pending' && (
+                                  <button 
+                                    onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Pending' })}
+                                    className="px-3 py-1 rounded-lg bg-amber-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-sm"
+                                  >
+                                    Pending
+                                  </button>
+                                )}
+                                {c.status !== 'Process' && (
+                                  <button 
+                                    onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Process' })}
+                                    className="px-3 py-1 rounded-lg bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
+                                  >
+                                    Process
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Done' })}
+                                  className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm"
+                                >
+                                  Done
+                                </button>
+                                <button 
+                                  onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Rejected' })}
+                                  className="px-3 py-1 rounded-lg bg-rose-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-sm"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
                             <button 
-                              onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Process' })}
-                              className="px-3 py-1 rounded-lg bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm"
+                              onClick={() => handleDeleteComplaint(c.complaint_id || c.id!)}
+                              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-100"
+                              title="Delete Complaint"
                             >
-                              Process
-                            </button>
-                            <button 
-                              onClick={() => setComplaintToComment({ id: c.complaint_id || c.id!, status: 'Done' })}
-                              className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm"
-                            >
-                              Done
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -1291,6 +1464,13 @@ export default function AdminDashboard({
                 >
                   <Plus className="w-4 h-4" />
                   Update Rates
+                </button>
+                <button 
+                  onClick={handleDeleteAllBookings}
+                  className="px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-black rounded-xl hover:bg-rose-100 transition-all border border-rose-100 flex items-center gap-2 uppercase tracking-widest"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete All
                 </button>
               </div>
             </div>
@@ -1371,40 +1551,31 @@ export default function AdminDashboard({
                             >
                               View
                             </button>
-                            {b.status === 'Pending' ? (
+                            {b.status === 'Pending' && (
                               <>
                                 <button 
-                                  onClick={() => {
-                                    const comment = window.prompt('Add a comment for approval (optional):');
-                                    handleUpdateBookingStatus(b.booking_id || b.id!, 'Approved', comment || undefined);
-                                  }}
+                                  onClick={() => setBookingToComment({ id: b.booking_id || b.id!, status: 'Approved' })}
                                   disabled={updating === (b.booking_id || b.id)}
                                   className="text-emerald-600 hover:text-emerald-800 font-black uppercase text-[9px] px-2 py-1 rounded-lg border border-emerald-100 hover:bg-emerald-50"
                                 >
                                   Approve
                                 </button>
                                 <button 
-                                  onClick={() => {
-                                    const comment = window.prompt('Add a reason for rejection:');
-                                    if (comment !== null) {
-                                      handleUpdateBookingStatus(b.booking_id || b.id!, 'Rejected', comment);
-                                    }
-                                  }}
+                                  onClick={() => setBookingToComment({ id: b.booking_id || b.id!, status: 'Rejected' })}
                                   disabled={updating === (b.booking_id || b.id)}
                                   className="text-rose-600 hover:text-rose-800 font-black uppercase text-[9px] px-2 py-1 rounded-lg border border-rose-100 hover:bg-rose-50"
                                 >
                                   Reject
                                 </button>
                               </>
-                            ) : (
-                              <button 
-                                onClick={() => handleDeleteBooking(b.booking_id || b.id!)}
-                                className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-all border border-rose-100"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
                             )}
+                            <button 
+                              onClick={() => handleDeleteBooking(b.booking_id || b.id!)}
+                              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-all border border-rose-100"
+                              title="Delete Booking"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1491,24 +1662,24 @@ export default function AdminDashboard({
                         className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-sm transition-all"
                       />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                      <input 
-                        type="password"
-                        value={profileFormData.password}
-                        onChange={(e) => setProfileFormData({ ...profileFormData, password: e.target.value })}
-                        className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-sm transition-all"
-                      />
-                    </div>
                   </div>
 
-                  <button 
-                    type="submit"
-                    className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 uppercase tracking-widest text-xs mt-4"
-                  >
-                    <Check className="w-4 h-4" />
-                    Save Changes
-                  </button>
+                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setShowChangePasswordModal(true)}
+                      className="w-full bg-slate-100 text-slate-600 font-black py-3 rounded-2xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+                    >
+                      Change Password
+                    </button>
+                    <button 
+                      type="submit"
+                      className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                    >
+                      <Check className="w-4 h-4" />
+                      Save Changes
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -1571,14 +1742,17 @@ export default function AdminDashboard({
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
-                <input 
-                  type="password" 
-                  value={profileFormData.password} 
-                  onChange={(e) => setProfileFormData({ ...profileFormData, password: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
-                />
+              <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    setShowChangePasswordModal(true);
+                  }}
+                  className="w-full bg-slate-100 text-slate-600 font-black py-3 rounded-xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+                >
+                  Change Password
+                </button>
               </div>
               <button 
                 type="submit"
@@ -1635,7 +1809,7 @@ export default function AdminDashboard({
                       <option value={`tower-${tower}`}>All Tower {tower} Residents</option>
                       {residents.filter(r => r.tower === tower).map(r => (
                         <option key={r.resident_id} value={r.resident_id}>
-                          {r.name} ({r.resident_id}) - Flat {r.flat}
+                          {r.name} - Flat {r.flat}
                         </option>
                       ))}
                     </optgroup>
@@ -1678,8 +1852,8 @@ export default function AdminDashboard({
                     type="number"
                     required
                     min="1"
-                    value={isNaN(billFormData.amount) ? '' : billFormData.amount}
-                    onChange={(e) => setBillFormData({ ...billFormData, amount: parseInt(e.target.value) })}
+                    value={isNaN(billFormData.amount) || billFormData.amount === 0 ? '' : billFormData.amount}
+                    onChange={(e) => setBillFormData({ ...billFormData, amount: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none font-bold"
                   />
                 </div>
@@ -1912,8 +2086,8 @@ export default function AdminDashboard({
                         type="number"
                         required
                         placeholder="Price (₹)"
-                        value={isNaN(amenityFormData.price) ? '' : amenityFormData.price}
-                        onChange={(e) => setAmenityFormData({ ...amenityFormData, price: parseInt(e.target.value) })}
+                        value={isNaN(amenityFormData.price) || amenityFormData.price === 0 ? '' : amenityFormData.price}
+                        onChange={(e) => setAmenityFormData({ ...amenityFormData, price: parseInt(e.target.value) || 0 })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
                     </div>
@@ -1925,8 +2099,8 @@ export default function AdminDashboard({
                         type="number"
                         required
                         min="1"
-                        value={isNaN(amenityFormData.base_hours) ? '' : amenityFormData.base_hours}
-                        onChange={(e) => setAmenityFormData({ ...amenityFormData, base_hours: parseInt(e.target.value) })}
+                        value={isNaN(amenityFormData.base_hours) || amenityFormData.base_hours === 0 ? '' : amenityFormData.base_hours}
+                        onChange={(e) => setAmenityFormData({ ...amenityFormData, base_hours: parseInt(e.target.value) || 0 })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
                     </div>
@@ -1936,8 +2110,8 @@ export default function AdminDashboard({
                         type="number"
                         required
                         min="0"
-                        value={isNaN(amenityFormData.extra_hour_charge) ? '' : amenityFormData.extra_hour_charge}
-                        onChange={(e) => setAmenityFormData({ ...amenityFormData, extra_hour_charge: parseInt(e.target.value) })}
+                        value={isNaN(amenityFormData.extra_hour_charge) || amenityFormData.extra_hour_charge === 0 ? '' : amenityFormData.extra_hour_charge}
+                        onChange={(e) => setAmenityFormData({ ...amenityFormData, extra_hour_charge: parseInt(e.target.value) || 0 })}
                         className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                       />
                     </div>
@@ -2293,27 +2467,15 @@ NOTIFY pgrst, 'reload schema';`);
               </button>
             </div>
             <form onSubmit={handleUpdateResident} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resident ID</label>
-                  <input 
-                    type="text"
-                    required
-                    value={residentEditData.resident_id}
-                    onChange={(e) => setResidentEditData({ ...residentEditData, resident_id: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Name</label>
-                  <input 
-                    type="text"
-                    required
-                    value={residentEditData.name}
-                    onChange={(e) => setResidentEditData({ ...residentEditData, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Name</label>
+                <input 
+                  type="text"
+                  required
+                  value={residentEditData.name}
+                  onChange={(e) => setResidentEditData({ ...residentEditData, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
@@ -2331,8 +2493,8 @@ NOTIFY pgrst, 'reload schema';`);
                   <input 
                     type="number"
                     required
-                    value={residentEditData.floor}
-                    onChange={(e) => setResidentEditData({ ...residentEditData, floor: parseInt(e.target.value) })}
+                    value={isNaN(residentEditData.floor) || residentEditData.floor === 0 ? '' : residentEditData.floor}
+                    onChange={(e) => setResidentEditData({ ...residentEditData, floor: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                   />
                 </div>
@@ -2368,17 +2530,6 @@ NOTIFY pgrst, 'reload schema';`);
                     className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
                   />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Password</label>
-                <input 
-                  type="password"
-                  required={!editingResident}
-                  value={residentEditData.password}
-                  onChange={(e) => setResidentEditData({ ...residentEditData, password: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
-                  placeholder={editingResident ? "Leave blank to keep current" : "Enter password"}
-                />
               </div>
               <button 
                 type="submit"
@@ -2570,6 +2721,7 @@ NOTIFY pgrst, 'reload schema';`);
             <div className={`p-8 text-white relative overflow-hidden ${
               complaintToComment.status === 'Done' ? 'bg-emerald-600' : 
               complaintToComment.status === 'Process' ? 'bg-indigo-600' :
+              complaintToComment.status === 'Pending' ? 'bg-amber-600' :
               'bg-rose-600'
             }`}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
@@ -2577,9 +2729,11 @@ NOTIFY pgrst, 'reload schema';`);
                 <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
                   {complaintToComment.status === 'Done' ? <CheckCircle2 className="w-7 h-7" /> : 
                    complaintToComment.status === 'Process' ? <RefreshCw className="w-7 h-7" /> :
+                   complaintToComment.status === 'Pending' ? <Clock className="w-7 h-7" /> :
                    <Ban className="w-7 h-7" />}
                   {complaintToComment.status === 'Done' ? 'Resolve Complaint' : 
                    complaintToComment.status === 'Process' ? 'Process Complaint' :
+                   complaintToComment.status === 'Pending' ? 'Mark as Pending' :
                    'Reject Complaint'}
                 </h3>
                 <p className="text-white/80 text-xs font-bold mt-2 uppercase tracking-widest">Add a comment for the resident</p>
@@ -2615,10 +2769,143 @@ NOTIFY pgrst, 'reload schema';`);
                       ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' 
                       : complaintToComment.status === 'Process'
                       ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                      : complaintToComment.status === 'Pending'
+                      ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-100'
                       : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100'
                   }`}
                 >
                   {updating === complaintToComment.id ? (
+                    <Clock className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden">
+            <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-black tracking-tight">Change Password</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Secure your admin account</p>
+              </div>
+              <button onClick={() => setShowChangePasswordModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleChangePassword} className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Old Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={passwordData.oldPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePasswordModal(false)}
+                  className="flex-1 px-6 py-4 rounded-xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating === 'changing-password'}
+                  className="flex-[2] px-6 py-4 rounded-xl bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                >
+                  {updating === 'changing-password' ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    'Update Password'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Booking Comment Modal */}
+      {bookingToComment && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden">
+            <div className={`p-8 text-white relative overflow-hidden ${
+              bookingToComment.status === 'Approved' ? 'bg-emerald-600' : 'bg-rose-600'
+            }`}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                  {bookingToComment.status === 'Approved' ? <CheckCircle2 className="w-7 h-7" /> : <Ban className="w-7 h-7" />}
+                  {bookingToComment.status === 'Approved' ? 'Approve Booking' : 'Reject Booking'}
+                </h3>
+                <p className="text-white/80 text-xs font-bold mt-2 uppercase tracking-widest">Add a comment for the resident</p>
+              </div>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Comment / Reason</label>
+                <textarea
+                  value={bookingComment}
+                  onChange={(e) => setBookingComment(e.target.value)}
+                  placeholder="Enter details or reason for rejection..."
+                  className="w-full px-5 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm font-medium min-h-[120px] resize-none bg-slate-50"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setBookingToComment(null);
+                    setBookingComment('');
+                  }}
+                  className="flex-1 px-6 py-4 rounded-2xl border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleUpdateBookingStatus(bookingToComment.id, bookingToComment.status, bookingComment);
+                    setBookingToComment(null);
+                    setBookingComment('');
+                  }}
+                  disabled={updating === bookingToComment.id}
+                  className={`flex-[2] px-6 py-4 rounded-2xl text-white font-black text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 ${
+                    bookingToComment.status === 'Approved' 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' 
+                      : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100'
+                  }`}
+                >
+                  {updating === bookingToComment.id ? (
                     <Clock className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />

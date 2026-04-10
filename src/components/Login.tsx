@@ -19,15 +19,15 @@ export default function Login({ onLogin }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Theme colors based on role
-  const themeColor = role === 'resident' ? 'emerald' : 'indigo';
-  const themeHex = role === 'resident' ? '#10b981' : '#4f46e5';
-  const themeBg = role === 'resident' ? 'bg-emerald-600' : 'bg-indigo-600';
-  const themeHover = role === 'resident' ? 'hover:bg-emerald-700' : 'hover:bg-indigo-700';
-  const themeShadow = role === 'resident' ? 'shadow-emerald-100' : 'shadow-indigo-100';
-  const themeFocus = role === 'resident' ? 'focus:ring-emerald-500/10 focus:border-emerald-500' : 'focus:ring-indigo-500/10 focus:border-indigo-500';
-  const themeText = role === 'resident' ? 'text-emerald-600' : 'text-indigo-600';
-  const themeIcon = role === 'resident' ? 'text-emerald-400' : 'text-indigo-400';
+  // Theme colors - Fixed to Dark Blue/Indigo
+  const themeColor = 'indigo';
+  const themeHex = '#4f46e5';
+  const themeBg = 'bg-indigo-600';
+  const themeHover = 'hover:bg-indigo-700';
+  const themeShadow = 'shadow-indigo-100';
+  const themeFocus = 'focus:ring-indigo-500/10 focus:border-indigo-500';
+  const themeText = 'text-indigo-600';
+  const themeIcon = 'text-indigo-400';
 
   // Forgot Password States
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -217,17 +217,17 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 font-sans selection:bg-indigo-100 selection:text-indigo-700">
+    <div className="min-h-screen bg-white flex items-center justify-center font-sans selection:bg-indigo-100 selection:text-indigo-700">
       {/* Background Decorative Elements - Subtle */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-[10%] -left-[10%] w-[40%] h-[40%] ${role === 'resident' ? 'bg-emerald-500/5' : 'bg-indigo-500/5'} rounded-full blur-[100px] transition-all duration-700`} />
-        <div className={`absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] ${role === 'resident' ? 'bg-teal-500/5' : 'bg-purple-500/5'} rounded-full blur-[100px] transition-all duration-700`} />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-10 max-w-md w-full relative border border-slate-100">
+          <div className="bg-white rounded-xl shadow-2xl p-8 md:p-10 max-w-md w-full relative border border-slate-100">
             <button 
               onClick={() => {
                 setShowForgotModal(false);
@@ -298,26 +298,26 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
       )}
 
-      <div className="max-w-[1000px] w-full grid md:grid-cols-2 bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] overflow-hidden relative z-10 border border-slate-100">
+      <div className="w-full min-h-screen grid md:grid-cols-2 bg-white overflow-hidden relative z-10 border-none">
         {/* Left Side - Visual/Branding */}
-        <div className={`hidden md:flex flex-col justify-between p-12 lg:p-16 ${role === 'resident' ? 'bg-emerald-950' : 'bg-slate-900'} text-white relative overflow-hidden transition-all duration-700`}>
-          <div className={`absolute top-0 right-0 w-64 h-64 ${role === 'resident' ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-full -mr-32 -mt-32 blur-3xl`} />
-          <div className={`absolute bottom-0 left-0 w-48 h-48 ${role === 'resident' ? 'bg-teal-500/10' : 'bg-purple-500/10'} rounded-full -ml-24 -mb-24 blur-2xl`} />
+        <div className="hidden md:flex flex-col justify-between p-12 lg:p-16 bg-slate-900 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full -ml-24 -mb-24 blur-2xl" />
           
           <div className="relative z-10">
             <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-10 border border-white/10">
               <Building2 className={`w-8 h-8 ${themeIcon}`} />
             </div>
-            <h1 className="text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight mb-4">
+            <h1 className="text-4xl lg:text-5xl font-black leading-[1.1] tracking-tight mb-2">
               TowerTech
             </h1>
-            <h3 className={`text-xl lg:text-2xl font-semibold ${themeIcon} mb-8`}>
+            <h3 className="text-xl lg:text-2xl font-bold text-indigo-400 mb-8">
               Society Management System
             </h3>
             
             <div className="space-y-6">
               <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-2 ${role === 'resident' ? 'text-emerald-300' : 'text-indigo-300'}`}>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-indigo-300">
                   SMART COMMUNITY MANAGEMENT
                 </p>
                 <p className="text-slate-400 text-base font-medium leading-relaxed max-w-sm">
@@ -326,7 +326,7 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
 
               <div className="pt-6 border-t border-white/5">
-                <p className="text-slate-300 text-sm font-semibold leading-relaxed">
+                <p className="text-slate-300 text-sm font-bold leading-relaxed">
                   Digital Solutions for Modern Communities
                 </p>
                 <p className="text-slate-500 text-xs mt-2 leading-relaxed max-w-xs">
@@ -352,8 +352,9 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center">
-          <div className="mb-10">
+        <div className="p-8 md:p-10 lg:p-12 flex flex-col justify-center">
+          <div className="max-w-md mx-auto w-full">
+            <div className="mb-8">
             <div className="md:hidden flex justify-center mb-8">
               <div className={`w-14 h-14 ${themeBg} rounded-2xl flex items-center justify-center shadow-lg ${themeShadow}`}>
                 <Building2 className="w-8 h-8 text-white" />
@@ -423,7 +424,7 @@ export default function Login({ onLogin }: LoginProps) {
                     type="text"
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
-                    placeholder={role === 'resident' ? "e.g. R101" : "e.g. A001"}
+                    placeholder=""
                     className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
                     required
                   />
@@ -504,5 +505,6 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

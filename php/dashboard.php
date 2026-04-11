@@ -58,11 +58,16 @@ if ($isAdmin) {
             <?php include 'header.php'; ?>
 
             <div class="flex-1 p-8">
-                <div class="mb-10">
-                    <h1 class="text-3xl font-black text-slate-900 tracking-tight mb-2">
-                        Hello, <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600"><?php echo $user['name']; ?>!</span>
-                    </h1>
-                    <p class="text-slate-500 font-bold">Welcome to your TowerTech <?php echo $isAdmin ? 'Admin' : 'Resident'; ?> Dashboard.</p>
+                <div class="mb-10 bg-gradient-to-r from-indigo-600 to-violet-700 p-8 rounded-[2.5rem] shadow-xl shadow-indigo-100 text-white relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110 blur-3xl"></div>
+                    <div class="relative z-10">
+                        <h1 class="text-4xl font-black tracking-tight mb-3">
+                            Hello, <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-rose-300 drop-shadow-sm"><?php echo $user['name']; ?>!</span>
+                        </h1>
+                        <p class="text-indigo-100 font-medium max-w-lg text-lg leading-relaxed">
+                            Welcome to your TowerTech <?php echo $isAdmin ? 'Admin' : 'Resident'; ?> Dashboard. Here you can manage your maintenance, bookings, and complaints.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Stats Grid -->

@@ -484,13 +484,13 @@ export default function ResidentDashboard({
         return (
           <div className="flex flex-col gap-6">
             {/* Welcome Message */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110"></div>
+            <div className="bg-gradient-to-r from-indigo-600 to-violet-700 p-8 rounded-[2.5rem] shadow-xl shadow-indigo-100 text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110 blur-3xl"></div>
               <div className="relative z-10">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-3">
-                  Hello, <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">{resident.name}</span>!
+                <h2 className="text-4xl font-black tracking-tight mb-3">
+                  Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-rose-300 drop-shadow-sm">{resident.name}</span>!
                 </h2>
-                <p className="text-slate-500 font-medium max-w-lg text-lg leading-relaxed">
+                <p className="text-indigo-100 font-medium max-w-lg text-lg leading-relaxed">
                   Welcome to your TowerTech Resident Dashboard. Here you can manage your maintenance, bookings, and complaints.
                 </p>
               </div>
@@ -1094,57 +1094,32 @@ export default function ResidentDashboard({
                   />
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
-                  <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-4">Change Password</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
-                      <div className="relative">
-                        <input 
-                          type={showPassword ? "text" : "password"}
-                          value={profileData.newPassword}
-                          onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })}
-                          className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm transition-all"
-                          placeholder="Leave blank to keep current"
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        value={profileData.confirmPassword}
-                        onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
-                        className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm transition-all"
-                        placeholder="Confirm new password"
-                      />
-                    </div>
-                  </div>
+                <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => setShowChangePassword(true)}
+                    className="w-full bg-slate-100 text-slate-600 font-black py-3 rounded-xl hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]"
+                  >
+                    Change Password
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={updatingProfile}
+                    className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                  >
+                    {updatingProfile ? (
+                      <>
+                        <Clock className="w-4 h-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
                 </div>
-                <button 
-                  type="submit"
-                  disabled={updatingProfile}
-                  className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-                >
-                  {updatingProfile ? (
-                    <>
-                      <Clock className="w-4 h-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
               </form>
             </div>
           </div>

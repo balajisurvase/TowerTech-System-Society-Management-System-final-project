@@ -14,6 +14,7 @@ import {
   Plus,
   Edit,
   Eye,
+  EyeOff,
   Trash2,
   Image as ImageIcon,
   User as UserIcon,
@@ -114,6 +115,7 @@ export default function AdminDashboard({
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [dbError, setDbError] = useState<string | null>(null);
   const [showBillForm, setShowBillForm] = useState(false);
+  const [showBillSuccessModal, setShowBillSuccessModal] = useState(false);
   const [showAmenityForm, setShowAmenityForm] = useState(false);
   const [showBookingEditModal, setShowBookingEditModal] = useState(false);
   const [showSqlModal, setShowSqlModal] = useState(false);
@@ -137,7 +139,8 @@ export default function AdminDashboard({
     flat: '',
     phone: '',
     email: '',
-    password: ''
+    password: '',
+    status: 'Active' as 'Active' | 'Inactive'
   });
   const [billFormData, setBillFormData] = useState({
     resident_id: 'all',
@@ -487,7 +490,6 @@ export default function AdminDashboard({
           resident_name: resident.name,
           flat_no: resident.flat,
           tower: resident.tower,
-          floor: resident.floor,
           month: fullMonth,
           amount: billFormData.amount,
           status: 'Unpaid' as const,
@@ -509,7 +511,6 @@ export default function AdminDashboard({
           resident_name: resident.name,
           flat_no: resident.flat,
           tower: resident.tower,
-          floor: resident.floor,
           month: fullMonth,
           amount: billFormData.amount,
           status: 'Unpaid',
@@ -522,6 +523,7 @@ export default function AdminDashboard({
       }
       
       setShowBillForm(false);
+      setShowBillSuccessModal(true);
       onRefresh();
     } catch (error: any) {
       toast.error('Failed to generate bill(s): ' + error.message);
@@ -621,11 +623,6 @@ export default function AdminDashboard({
       const towerCompare = towerA.localeCompare(towerB);
       if (towerCompare !== 0) return towerCompare;
 
-      // Then by Floor
-      const floorA = a.floor || 0;
-      const floorB = b.floor || 0;
-      if (floorA !== floorB) return floorA - floorB;
-
       // Then by Flat
       const flatA = String(a.flat_no || '');
       const flatB = String(b.flat_no || '');
@@ -671,6 +668,7 @@ export default function AdminDashboard({
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -810,7 +808,7 @@ export default function AdminDashboard({
                     <tbody className="divide-y divide-slate-50">
                       {recentBookings.map((b, idx) => (
                         <tr key={b.id || idx} className="hover:bg-slate-50/30 transition-colors text-xs">
-                          <td className="px-6 py-4 font-black text-indigo-600">B{String(idx + 1).padStart(3, '0')}</td>
+                          <td className="px-6 py-4 font-black text-indigo-600">{b.booking_id}</td>
                           <td className="px-6 py-4 font-bold text-slate-800">{b.amenity_name}</td>
                           <td className="px-6 py-4 text-slate-500 font-medium">{format(new Date(b.booking_date), 'dd MMM yyyy')}</td>
                           <td className="px-6 py-4">
@@ -845,7 +843,7 @@ export default function AdminDashboard({
                     <tbody className="divide-y divide-slate-50">
                       {recentComplaints.map((c, idx) => (
                         <tr key={c.id || idx} className="hover:bg-slate-50/30 transition-colors text-xs">
-                          <td className="px-6 py-4 font-black text-indigo-600">C{String(idx + 1).padStart(3, '0')}</td>
+                          <td className="px-6 py-4 font-black text-indigo-600">{c.complaint_id}</td>
                           <td className="px-6 py-4 font-bold text-slate-800">{c.category}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2.5 py-1 rounded-full font-black text-[9px] uppercase ${
@@ -939,7 +937,8 @@ export default function AdminDashboard({
                         flat: '',
                         phone: '',
                         email: '',
-                        password: ''
+                        password: '',
+                        status: 'Active'
                       });
                       setShowEditResidentModal(true);
                     }}
@@ -1002,7 +1001,28 @@ export default function AdminDashboard({
                       </td>
                       <td className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded uppercase tracking-wider border border-emerald-200">Active</button>
+                          <button 
+                            onClick={async () => {
+                              const newStatus = r.status === 'Inactive' ? 'Active' : 'Inactive';
+                              setUpdating(r.resident_id);
+                              try {
+                                await societyService.updateResident(r.resident_id, { status: newStatus });
+                                toast.success(`Resident marked as ${newStatus}`);
+                                onRefresh();
+                              } catch (err: any) {
+                                toast.error('Failed to update status: ' + err.message);
+                              } finally {
+                                setUpdating(null);
+                              }
+                            }}
+                            className={`px-2 py-0.5 text-[9px] font-black rounded uppercase tracking-wider border transition-colors ${
+                              r.status === 'Inactive' 
+                                ? 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100' 
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {r.status || 'Active'}
+                          </button>
                           <button 
                             onClick={() => {
                               setEditingResident(r);
@@ -1014,7 +1034,8 @@ export default function AdminDashboard({
                                 flat: r.flat,
                                 phone: r.phone,
                                 email: r.email,
-                                password: r.password || ''
+                                password: r.password || '',
+                                status: r.status || 'Active'
                               });
                               setShowEditResidentModal(true);
                             }}
@@ -1208,7 +1229,7 @@ export default function AdminDashboard({
                       } hover:bg-indigo-50/40 text-[11px]`}>
                         <td className="px-6 py-3">
                           <span className="font-black text-indigo-600 tracking-tight">
-                            {m.maintenance_id || `M-${String(index + 1).padStart(3, '0')}`}
+                            {m.maintenance_id}
                           </span>
                         </td>
                         <td className="px-6 py-3">
@@ -1322,7 +1343,7 @@ export default function AdminDashboard({
                     {filteredComplaints.map((c, idx) => (
                       <tr key={c.id || idx} className="hover:bg-slate-50 transition-colors group text-[11px]">
                         <td className="px-6 py-4">
-                          <span className="font-black text-indigo-600 tracking-tight">C{String(idx + 1).padStart(3, '0')}</span>
+                          <span className="font-black text-indigo-600 tracking-tight">{c.complaint_id}</span>
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-800">{c.category}</p>
@@ -1510,7 +1531,7 @@ export default function AdminDashboard({
                       <tr key={b.booking_id || b.id || index} className="hover:bg-slate-50/80 transition-colors group text-[11px]">
                         <td className="px-6 py-3">
                           <span className="font-extrabold text-indigo-600 tracking-tight">
-                            B{String(index + 1).padStart(3, '0')}
+                            {b.booking_id}
                           </span>
                         </td>
                         <td className="px-6 py-3">
@@ -2531,6 +2552,17 @@ NOTIFY pgrst, 'reload schema';`);
                   />
                 </div>
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</label>
+                <select 
+                  value={residentEditData.status}
+                  onChange={(e) => setResidentEditData({ ...residentEditData, status: e.target.value as 'Active' | 'Inactive' })}
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
               <button 
                 type="submit"
                 disabled={updating === 'updating-resident'}
@@ -2802,33 +2834,60 @@ NOTIFY pgrst, 'reload schema';`);
             <form onSubmit={handleChangePassword} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Old Password</label>
-                <input 
-                  type="password" 
-                  required
-                  value={passwordData.oldPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    value={passwordData.oldPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                    className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
-                <input 
-                  type="password" 
-                  required
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
-                <input 
-                  type="password" 
-                  required
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
@@ -2851,6 +2910,28 @@ NOTIFY pgrst, 'reload schema';`);
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showBillSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Bills Generated!</h3>
+                <p className="text-slate-500 font-medium mt-2">Maintenance bills have been generated and sent to the selected residents successfully.</p>
+              </div>
+              <button 
+                onClick={() => setShowBillSuccessModal(false)}
+                className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 uppercase tracking-widest text-xs"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -15,6 +15,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
     amenity_name: '',
     event_name: '',
@@ -140,6 +141,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
       });
 
       setSuccessMessage('Booking request submitted successfully!');
+      setShowSuccessModal(true);
       setFormData(prev => ({
         ...prev,
         event_name: '',
@@ -166,10 +168,25 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
         </div>
       </div>
 
-      {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-6 py-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 shrink-0">
-          <CheckCircle2 className="w-5 h-5" />
-          <span className="font-bold text-sm">{successMessage}</span>
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Booking Successful!</h3>
+                <p className="text-slate-500 font-medium mt-2">Your request for {formData.amenity_name || 'the amenity'} has been submitted and is pending approval.</p>
+              </div>
+              <button 
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 uppercase tracking-widest text-xs"
+              >
+                Great, Thanks!
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -350,7 +367,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
                     bookings.map((b, idx) => (
                       <tr key={b.id || b.booking_id} className="hover:bg-slate-50 transition-colors text-xs">
                         <td className="px-8 py-6 font-black text-indigo-600">
-                          B{String(idx + 1).padStart(3, '0')}
+                          {(b.booking_id || '').slice(0, 8)}...
                         </td>
                         <td className="px-8 py-6">
                           <p className="font-bold text-slate-800">{b.amenity_name}</p>

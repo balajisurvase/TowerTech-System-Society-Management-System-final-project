@@ -360,15 +360,15 @@ export default function Login({ onLogin }: LoginProps) {
                 <Building2 className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
               {role === 'resident' ? 'Resident Login' : 'Admin Login'}
             </h2>
-            <p className="text-slate-500 text-sm font-medium">Welcome back! Please sign in to your account.</p>
+            <p className="text-slate-500 text-sm font-bold">Welcome back! Please sign in to your account.</p>
           </div>
 
           {/* Role Switcher */}
           <div className="mb-8">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Mode</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Select Mode</label>
             <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
               <button
                 onClick={() => {
@@ -376,7 +376,7 @@ export default function Login({ onLogin }: LoginProps) {
                   setLoginId('');
                   setPassword('');
                 }}
-                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   role === 'resident' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -388,7 +388,7 @@ export default function Login({ onLogin }: LoginProps) {
                   setLoginId('');
                   setPassword('');
                 }}
-                className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   role === 'admin' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -400,7 +400,7 @@ export default function Login({ onLogin }: LoginProps) {
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Society ID</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Society ID</label>
                 <div className="relative group">
                   <Building2 className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:${themeText} transition-colors`} />
                   <input
@@ -408,14 +408,14 @@ export default function Login({ onLogin }: LoginProps) {
                     value={societyId}
                     onChange={(e) => setSocietyId(e.target.value)}
                     placeholder="GV2026"
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-black text-slate-700 placeholder:text-slate-300 text-sm`}
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                   {role === 'resident' ? 'Resident ID' : 'Admin ID'}
                 </label>
                 <div className="relative group">
@@ -425,7 +425,7 @@ export default function Login({ onLogin }: LoginProps) {
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
                     placeholder=""
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-black text-slate-700 placeholder:text-slate-300 text-sm`}
                     required
                   />
                 </div>
@@ -433,11 +433,11 @@ export default function Login({ onLogin }: LoginProps) {
               
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center ml-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
                   <button 
                     type="button"
                     onClick={() => setShowForgotModal(true)}
-                    className={`text-[10px] font-bold ${themeText} hover:opacity-80 uppercase tracking-widest`}
+                    className={`text-[10px] font-black ${themeText} hover:opacity-80 uppercase tracking-widest`}
                   >
                     Forgot?
                   </button>
@@ -449,7 +449,7 @@ export default function Login({ onLogin }: LoginProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-semibold text-slate-700 placeholder:text-slate-300 text-sm`}
+                    className={`w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 focus:ring-4 ${themeFocus} outline-none transition-all font-black text-slate-700 placeholder:text-slate-300 text-sm`}
                     required
                   />
                   <button

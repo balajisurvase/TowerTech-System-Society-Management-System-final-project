@@ -74,6 +74,7 @@ export default function ResidentDashboard({
   const [description, setDescription] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showComplaintSuccessModal, setShowComplaintSuccessModal] = useState(false);
   const [viewAllComplaints, setViewAllComplaints] = useState(false);
   const [viewAllBookings, setViewAllBookings] = useState(false);
 
@@ -152,6 +153,7 @@ export default function ResidentDashboard({
       setComplaintCategory('');
       setDescription('');
       setMediaFile(null);
+      setShowComplaintSuccessModal(true);
       toast.success('Complaint submitted successfully!');
       onRefresh();
     } catch (error: any) {
@@ -192,7 +194,6 @@ export default function ResidentDashboard({
         resident_name: resident.name,
         flat_no: resident.flat,
         tower: resident.tower,
-        floor: resident.floor,
         month: fullMonth,
         amount: 2500, // Default amount, could be dynamic
         status: 'Unpaid',
@@ -296,7 +297,7 @@ export default function ResidentDashboard({
         </div>
         <div className="space-y-2">
           <h2 className="text-4xl font-black tracking-tight">
-            Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-rose-300 drop-shadow-sm">{resident.name}!</span>
+            Hello, <span className="text-white drop-shadow-sm">{resident.name}!</span>
           </h2>
           <p className="text-blue-100/80 text-lg font-medium max-w-2xl leading-relaxed">
             Welcome to your TowerTech Resident Dashboard. Here you can manage your maintenance, bookings, and complaints.
@@ -425,33 +426,60 @@ export default function ResidentDashboard({
         <form onSubmit={handleChangePassword} className="p-8 space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Old Password</label>
-            <input 
-              type="password" 
-              required
-              value={profileData.oldPassword}
-              onChange={(e) => setProfileData({ ...profileData, oldPassword: e.target.value })}
-              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required
+                value={profileData.oldPassword}
+                onChange={(e) => setProfileData({ ...profileData, oldPassword: e.target.value })}
+                className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
-            <input 
-              type="password" 
-              required
-              value={profileData.newPassword}
-              onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })}
-              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required
+                value={profileData.newPassword}
+                onChange={(e) => setProfileData({ ...profileData, newPassword: e.target.value })}
+                className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
-            <input 
-              type="password" 
-              required
-              value={profileData.confirmPassword}
-              onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
-              className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required
+                value={profileData.confirmPassword}
+                onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+                className="w-full px-5 py-4 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold text-sm" 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button
@@ -488,7 +516,7 @@ export default function ResidentDashboard({
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 transition-transform duration-700 group-hover:scale-110 blur-3xl"></div>
               <div className="relative z-10">
                 <h2 className="text-4xl font-black tracking-tight mb-3">
-                  Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-rose-300 drop-shadow-sm">{resident.name}</span>!
+                  Hello, <span className="text-white drop-shadow-sm">{resident.name}</span>!
                 </h2>
                 <p className="text-indigo-100 font-medium max-w-lg text-lg leading-relaxed">
                   Welcome to your TowerTech Resident Dashboard. Here you can manage your maintenance, bookings, and complaints.
@@ -755,7 +783,7 @@ export default function ResidentDashboard({
                     ) : (
                       filteredMaintenance.map((m, index) => (
                         <tr key={m.id || index} className="hover:bg-slate-50 transition-colors text-xs">
-                          <td className="px-8 py-6 font-black text-indigo-600">M{String(index + 1).padStart(3, '0')}</td>
+                          <td className="px-8 py-6 font-black text-indigo-600">{m.maintenance_id}</td>
                           <td className="px-8 py-6 font-bold text-slate-800">T-{m.tower} / {m.flat_no}</td>
                           <td className="px-8 py-6 text-slate-600 font-medium">{m.month}</td>
                           <td className="px-8 py-6 font-black text-slate-900">₹{m.amount}</td>
@@ -875,7 +903,7 @@ export default function ResidentDashboard({
                         <div className="flex-1 space-y-4">
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">
-                              C{String(index + 1).padStart(3, '0')}
+                              {c.complaint_id}
                             </span>
                             <span className="px-3 py-1 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-lg uppercase tracking-widest">
                               T-{c.tower} / {c.flat_no}
@@ -986,7 +1014,7 @@ export default function ResidentDashboard({
                         ) : (
                           bookings.map((b, index) => (
                             <tr key={b.booking_id || b.id || `booking-all-${index}`} className="hover:bg-slate-50 transition-colors text-xs">
-                              <td className="px-8 py-6 font-black text-indigo-600">B{String(index + 1).padStart(3, '0')}</td>
+                              <td className="px-8 py-6 font-black text-indigo-600">{b.booking_id}</td>
                               <td className="px-8 py-6">
                                 <p className="font-bold text-slate-800">{b.amenity_name}</p>
                                 <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">{b.amenity_type}</p>
@@ -1137,6 +1165,28 @@ export default function ResidentDashboard({
       </div>
 
       {showEditProfile && renderEditProfileModal()}
+      {showComplaintSuccessModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Complaint Raised!</h3>
+                <p className="text-slate-500 font-medium mt-2">Your complaint has been submitted successfully. Our team will look into it shortly.</p>
+              </div>
+              <button 
+                onClick={() => setShowComplaintSuccessModal(false)}
+                className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 uppercase tracking-widest text-xs"
+              >
+                Got it, Thanks!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showChangePassword && renderChangePasswordModal()}
 
       {/* Image Preview Modal */}

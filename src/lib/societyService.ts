@@ -162,13 +162,15 @@ export const societyService = {
       throw new Error(`Maintenance bill already generated for flat ${bill.flat_no} in ${bill.month}`);
     }
 
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    const maintenance_id = `M-${timestamp}${random}`;
+    // Generate a sequential-like ID
+    const { count } = await supabase.from('maintenance').select('*', { count: 'exact', head: true });
+    const nextNum = (count || 0) + 1;
+    const maintenance_id = `M${nextNum.toString().padStart(3, '0')}`;
+    const rawId = generateUUID();
 
     const billWithId = { 
       ...bill, 
-      id: generateUUID(), // Proactively provide an ID to avoid NOT NULL constraint errors
+      id: rawId, 
       maintenance_id,
       created_at: new Date().toISOString()
     };
@@ -179,6 +181,16 @@ export const societyService = {
       .select();
     
     if (error) {
+      // If invalid UUID syntax (22P02), retry with plain UUID for maintenance_id
+      if (error.code === '22P02') {
+        const { data: retryData, error: retryError } = await supabase
+          .from('maintenance')
+          .insert([{ ...billWithId, maintenance_id: rawId }])
+          .select();
+        if (retryError) throw retryError;
+        return retryData[0] as MaintenanceRecord;
+      }
+
       // If columns are missing or NOT NULL constraint violated, try to insert without them
       if (error.code === '42703' || error.code === 'PGRST204' || error.code === '23502' || error.message?.includes('column') || error.message?.includes('null value')) {
         // Strip out fields that are often missing in simpler schemas, 
@@ -231,14 +243,17 @@ export const societyService = {
   async createBulkMaintenanceBills(bills: Omit<MaintenanceRecord, 'id' | 'maintenance_id'>[]) {
     if (bills.length === 0) return [];
 
-    const billsWithIds = bills.map((bill, index) => {
-      const timestamp = Date.now().toString().slice(-6);
-      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-      const maintenance_id = `M-${timestamp}${random}${index.toString().padStart(2, '0')}`;
+    const { count } = await supabase.from('maintenance').select('*', { count: 'exact', head: true });
+    let currentCount = count || 0;
+
+    const billsWithIds = bills.map((bill) => {
+      currentCount++;
+      const rawId = generateUUID();
+      const maintenance_id = `M${currentCount.toString().padStart(3, '0')}`;
       
       return {
         ...bill,
-        id: generateUUID(),
+        id: rawId,
         maintenance_id,
         created_at: new Date().toISOString()
       };
@@ -250,9 +265,58 @@ export const societyService = {
       .select();
 
     if (error) {
+      // If invalid UUID syntax (22P02), retry with plain UUID for maintenance_id
+      if (error.code === '22P02') {
+        const plainBills = billsWithIds.map(b => ({ ...b, maintenance_id: b.id }));
+        const { data: retryData, error: retryError } = await supabase
+          .from('maintenance')
+          .insert(plainBills)
+          .select();
+        if (retryError) throw retryError;
+        return retryData as MaintenanceRecord[];
+      }
+      // If columns are missing, try to insert without them
+      if (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column')) {
+        const minimalBills = billsWithIds.map(bill => {
+          const { generated_by, admin_id, ...rest } = bill as any;
+          return rest;
+        });
+        
+        const { data: retryData, error: retryError } = await supabase
+          .from('maintenance')
+          .insert(minimalBills)
+          .select();
+        
+        if (retryError) {
+          // Try even more minimal if it still fails
+          if (retryError.code === '42703' || retryError.code === 'PGRST204' || retryError.message?.includes('column')) {
+            const superMinimalBills = billsWithIds.map(bill => ({
+              id: bill.id,
+              maintenance_id: bill.maintenance_id,
+              resident_id: bill.resident_id,
+              resident_name: bill.resident_name,
+              flat_no: bill.flat_no,
+              tower: bill.tower,
+              month: bill.month,
+              amount: bill.amount,
+              status: bill.status,
+              due_date: bill.due_date,
+              society_id: bill.society_id
+            }));
+            
+            const { data: finalData, error: finalError } = await supabase
+              .from('maintenance')
+              .insert(superMinimalBills)
+              .select();
+            
+            if (finalError) throw finalError;
+            return finalData as MaintenanceRecord[];
+          }
+          throw retryError;
+        }
+        return retryData as MaintenanceRecord[];
+      }
       console.error('Error creating bulk maintenance bills:', error);
-      // If bulk insert fails, we could try one by one or just throw
-      // For now, let's throw so the UI can handle it
       throw error;
     }
 
@@ -375,21 +439,17 @@ export const societyService = {
   },
 
   async addComplaint(complaintData: Omit<Complaint, 'id' | 'complaint_id'>) {
-    // Generate a unique complaint ID: C011, C012...
-    let complaint_id = '';
-    try {
-      const { count } = await supabase
-        .from('complaint')
-        .select('*', { count: 'exact', head: true });
-      
-      const nextNumber = (count || 0) + 1; // Start from C001 if count is 0
-      complaint_id = `C${nextNumber.toString().padStart(3, '0')}`;
-    } catch (e) {
-      const timestamp = Date.now().toString().slice(-6);
-      complaint_id = `C-${timestamp}`;
-    }
+    // Generate a sequential-like ID
+    const { count } = await supabase.from('complaint').select('*', { count: 'exact', head: true });
+    const nextNum = (count || 0) + 1;
+    const complaint_id = `C${nextNum.toString().padStart(3, '0')}`;
+    const rawId = generateUUID();
 
-    const complaint = { ...complaintData, complaint_id };
+    const complaint = { 
+      ...complaintData, 
+      complaint_id,
+      id: rawId 
+    };
 
     const { data, error } = await supabase
       .from('complaint')
@@ -397,12 +457,24 @@ export const societyService = {
       .select();
     
     if (error) {
-      // If society_id column is missing, try without it
-      if (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('society_id') || error.message?.includes('column')) {
-        const { society_id, ...complaintWithoutSociety } = complaint as any;
+      // If invalid UUID syntax (22P02), retry with plain UUID for complaint_id
+      if (error.code === '22P02') {
         const { data: retryData, error: retryError } = await supabase
           .from('complaint')
-          .insert([complaintWithoutSociety])
+          .insert([{ ...complaint, complaint_id: rawId }])
+          .select();
+        
+        if (retryError) throw retryError;
+        return retryData && retryData.length > 0 ? retryData[0] as Complaint : null;
+      }
+
+      // If columns are missing (like 'name') or NOT NULL constraint violated, try to insert without them
+      if (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column') || error.message?.includes('null value')) {
+        // Strip out fields that are often missing in simpler schemas
+        const { name, society_id, ...complaintWithoutName } = complaint as any;
+        const { data: retryData, error: retryError } = await supabase
+          .from('complaint')
+          .insert([complaintWithoutName])
           .select();
         
         if (retryError) {
@@ -410,10 +482,11 @@ export const societyService = {
           // Try super minimal
           if (retryError.code === '42703' || retryError.code === 'PGRST204' || retryError.message?.includes('column')) {
             const superMinimalComplaint = {
+              id: generateUUID(),
               complaint_id: complaint.complaint_id,
               category: complaint.category,
               description: complaint.description,
-              date: complaint.date,
+              date: complaint.date || complaint.complaint_date,
               status: complaint.status
             };
             const { data: finalData, error: finalError } = await supabase
@@ -541,23 +614,15 @@ export const societyService = {
   },
 
   async addBooking(booking: Omit<Booking, 'id' | 'booking_id'>) {
-    // Generate a unique booking ID: B004, B005...
-    let booking_id = '';
-    try {
-      const { count, error: countError } = await supabase
-        .from('booking')
-        .select('*', { count: 'exact', head: true });
-      
-      const nextNumber = (count || 0) + 4; // Start from B004 if count is 0
-      booking_id = `B${nextNumber.toString().padStart(3, '0')}`;
-    } catch (e) {
-      const randomDigits = Math.floor(1000 + Math.random() * 9000);
-      booking_id = `B2026${randomDigits}`;
-    }
+    // Generate a sequential-like ID
+    const { count } = await supabase.from('booking').select('*', { count: 'exact', head: true });
+    const nextNum = (count || 0) + 1;
+    const booking_id = `B${nextNum.toString().padStart(3, '0')}`;
+    const rawId = generateUUID();
 
     const bookingWithId = { 
       ...booking, 
-      id: generateUUID(), // Proactively provide an ID
+      id: rawId,
       booking_id,
       created_at: new Date().toISOString()
     };
@@ -568,6 +633,15 @@ export const societyService = {
       .select();
     
     if (error) {
+      // If invalid UUID syntax (22P02), retry with plain UUID for booking_id
+      if (error.code === '22P02') {
+        const { data: retryData, error: retryError } = await supabase
+          .from('booking')
+          .insert([{ ...bookingWithId, booking_id: rawId }])
+          .select();
+        if (retryError) throw retryError;
+        return retryData && retryData.length > 0 ? retryData[0] as Booking : null;
+      }
       console.error('Error adding booking:', error);
       // If society_id or other columns are missing, or NOT NULL constraint violated, try to insert with minimal fields
       if (error.code === '42703' || error.code === 'PGRST204' || error.code === '23502' || error.message?.includes('society_id') || error.message?.includes('column') || error.message?.includes('null value')) {
@@ -715,30 +789,58 @@ export const societyService = {
   },
 
   async deleteMaintenanceRecord(id: string) {
-    const { error } = await supabase
-      .from('maintenance')
-      .delete()
-      .or(`maintenance_id.eq.${id},id.eq.${id}`);
+    // Check if id is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    
+    let query = supabase.from('maintenance').delete();
+    
+    if (isUUID) {
+      query = query.or(`maintenance_id.eq.${id},id.eq.${id}`);
+    } else {
+      query = query.eq('maintenance_id', id);
+    }
+    
+    const { error } = await query;
     
     if (error) throw error;
     return { success: true };
   },
   
   async deleteComplaint(id: string) {
-    const { error } = await supabase
-      .from('complaint')
-      .delete()
-      .or(`complaint_id.eq.${id},id.eq.${id}`);
+    // Check if id is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    // Check if id is a number (for bigint)
+    const isNumber = /^\d+$/.test(id);
+    
+    let query = supabase.from('complaint').delete();
+    
+    if (isUUID) {
+      query = query.or(`complaint_id.eq.${id},id.eq.${id}`);
+    } else if (isNumber) {
+      query = query.or(`complaint_id.eq.${id},id.eq.${id}`);
+    } else {
+      query = query.eq('complaint_id', id);
+    }
+    
+    const { error } = await query;
     
     if (error) throw error;
     return { success: true };
   },
 
   async deleteBooking(id: string) {
-    const { error } = await supabase
-      .from('booking')
-      .delete()
-      .or(`booking_id.eq.${id},id.eq.${id}`);
+    // Check if id is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    
+    let query = supabase.from('booking').delete();
+    
+    if (isUUID) {
+      query = query.or(`booking_id.eq.${id},id.eq.${id}`);
+    } else {
+      query = query.eq('booking_id', id);
+    }
+    
+    const { error } = await query;
     
     if (error) throw error;
     return { success: true };

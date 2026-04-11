@@ -13,6 +13,7 @@ export interface Resident {
   password?: string;
   society_id: string;
   role?: Role;
+  status?: 'Active' | 'Inactive';
 }
 
 export interface Security {
@@ -34,7 +35,6 @@ export interface MaintenanceRecord {
   resident_name?: string;
   flat_no: string;
   tower: string;
-  floor?: number;
   month: string;
   amount: number;
   status: string;

@@ -14,8 +14,12 @@ $message = '';
 if ($isAdmin && isset($_POST['approve_booking'])) {
     $bookingId = $_POST['booking_id'];
     $status = $_POST['status'];
+    $comment = $_POST['admin_comment'] ?? '';
     
-    $response = supabaseRequest('PATCH', 'booking?booking_id=eq.' . $bookingId, ['status' => $status]);
+    $response = supabaseRequest('PATCH', 'booking?booking_id=eq.' . $bookingId, [
+        'status' => $status,
+        'admin_comment' => $comment
+    ]);
     if ($response['status'] >= 200 && $response['status'] < 300) {
         $message = "Booking $status successfully!";
     }
@@ -155,16 +159,24 @@ $bookings = $response['data'] ?? [];
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <?php if ($isAdmin && $b['status'] === 'Pending'): ?>
-                                    <form method="POST" class="inline-flex gap-2">
+                                    <form method="POST" class="flex flex-col gap-2 items-end">
                                         <input type="hidden" name="booking_id" value="<?php echo $b['booking_id']; ?>">
                                         <input type="hidden" name="approve_booking" value="1">
-                                        <button type="submit" name="status" value="Approved" class="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-800 transition-colors">Approve</button>
-                                        <button type="submit" name="status" value="Cancelled" class="text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-800 transition-colors">Reject</button>
+                                        <input type="text" name="admin_comment" placeholder="Add comment..." class="text-[10px] px-2 py-1 rounded border border-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 w-32">
+                                        <div class="flex gap-2">
+                                            <button type="submit" name="status" value="Approved" class="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-800 transition-colors">Approve</button>
+                                            <button type="submit" name="status" value="Cancelled" class="text-[10px] font-black uppercase tracking-widest text-rose-600 hover:text-rose-800 transition-colors">Reject</button>
+                                        </div>
                                     </form>
                                     <?php else: ?>
-                                    <button class="text-slate-400 hover:text-indigo-600 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                    </button>
+                                    <div class="flex flex-col items-end">
+                                        <button class="text-slate-400 hover:text-indigo-600 transition-colors mb-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        </button>
+                                        <?php if (!empty($b['admin_comment'])): ?>
+                                        <p class="text-[9px] text-slate-400 italic max-w-[120px] truncate" title="<?php echo $b['admin_comment']; ?>"><?php echo $b['admin_comment']; ?></p>
+                                        <?php endif; ?>
+                                    </div>
                                     <?php endif; ?>
                                 </td>
                             </tr>

@@ -1,20 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-let rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://mniarauxuzqcmdrplgiz.supabase.co'
+const supabaseKey = 'sb_publishable_lyGIIhz89nFb_vMNQVfLCA_HvJeEk_5'
 
-if (rawSupabaseUrl && rawSupabaseUrl.startsWith('//')) {
-  rawSupabaseUrl = `https:${rawSupabaseUrl}`;
-}
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
-if (!rawSupabaseUrl || !supabaseKey) {
-  console.warn("Supabase URL or Anon Key is missing or invalid. Please check your environment variables.");
-}
-
-export const supabaseUrl = rawSupabaseUrl;
-export const supabase = createClient(rawSupabaseUrl || '', supabaseKey || '')
-
-export const isSupabaseConfigured = !!(rawSupabaseUrl && supabaseKey);
+export const isSupabaseConfigured = true;
 
 // Test Connection logs as requested
 async function testConnection() {

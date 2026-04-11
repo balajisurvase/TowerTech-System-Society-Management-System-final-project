@@ -9,6 +9,7 @@ import Header from './components/Header';
 import AdminDashboard from './components/AdminDashboard';
 import ResidentDashboard from './components/ResidentDashboard';
 import { Toaster } from 'sonner';
+import { Users } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);

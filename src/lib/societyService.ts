@@ -1,4 +1,4 @@
-import { supabase, supabaseUrl } from './supabase';
+import { supabase } from './supabase';
 import { Resident, MaintenanceRecord, Complaint, Booking, Society, Admin, Amenity, Media } from '../types';
 import { initialAmenities } from '../data';
 

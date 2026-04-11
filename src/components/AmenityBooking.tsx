@@ -3,6 +3,7 @@ import { Calendar, Clock, CheckCircle2, AlertCircle, Loader2, ChevronRight } fro
 import { toast } from 'sonner';
 import { Resident, Booking, Amenity } from '../types';
 import { societyService } from '../lib/societyService';
+import { format } from 'date-fns';
 
 interface AmenityBookingProps {
   resident: Resident;
@@ -378,7 +379,7 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-slate-800 font-bold">
                               <Calendar className="w-3 h-3 text-indigo-600" />
-                              {b.booking_date}
+                              {format(new Date(b.booking_date), 'dd MMM yyyy')}
                             </div>
                             <div className="flex items-center gap-2 text-slate-500 font-medium">
                               <Clock className="w-3 h-3" />

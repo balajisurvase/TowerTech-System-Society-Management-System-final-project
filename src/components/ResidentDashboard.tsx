@@ -24,6 +24,7 @@ import AmenityBooking from './AmenityBooking';
 import { Resident, MaintenanceRecord, Complaint, Booking } from '../types';
 import { societyService } from '../lib/societyService';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface ResidentDashboardProps {
   activeTab: string;
@@ -659,7 +660,7 @@ export default function ResidentDashboard({
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900 truncate w-24">{b.amenity_name}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{b.booking_date}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{format(new Date(b.booking_date), 'dd MMM yyyy')}</p>
                         </div>
                       </div>
                       <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${
@@ -787,7 +788,7 @@ export default function ResidentDashboard({
                           <td className="px-8 py-6 font-bold text-slate-800">T-{m.tower} / {m.flat_no}</td>
                           <td className="px-8 py-6 text-slate-600 font-medium">{m.month}</td>
                           <td className="px-8 py-6 font-black text-slate-900">₹{m.amount}</td>
-                          <td className="px-8 py-6 text-slate-500">{m.due_date}</td>
+                          <td className="px-8 py-6 text-slate-500">{format(new Date(m.due_date), 'dd MMM yyyy')}</td>
                           <td className="px-8 py-6">
                             <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit ${
                               m.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
@@ -909,7 +910,7 @@ export default function ResidentDashboard({
                               T-{c.tower} / {c.flat_no}
                             </span>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              {c.complaint_date}
+                              {format(new Date(c.complaint_date), 'dd MMM yyyy')}
                             </span>
                           </div>
                           <div>
@@ -1024,7 +1025,7 @@ export default function ResidentDashboard({
                                 <div className="flex flex-col gap-0.5">
                                   <div className="flex items-center gap-2 text-slate-800 font-bold">
                                     <Calendar className="w-3 h-3 text-indigo-600" />
-                                    {b.booking_date}
+                                    {format(new Date(b.booking_date), 'dd MMM yyyy')}
                                   </div>
                                   <div className="flex items-center gap-2 text-slate-500 font-medium">
                                     <Clock className="w-3 h-3" />

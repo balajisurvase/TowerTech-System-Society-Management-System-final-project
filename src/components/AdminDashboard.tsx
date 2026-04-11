@@ -700,29 +700,8 @@ export default function AdminDashboard({
     setShowProfileModal(false);
   };
 
-  // Notification logic
-  useEffect(() => {
-    const lastComplaint = complaints[0];
-    const lastBooking = bookings[0];
-    const lastMaintenance = maintenance[0];
-
-    if (lastComplaint && isNew(lastComplaint.created_at)) {
-      toast(`New Complaint Submitted by Resident ${lastComplaint.resident_id} – ${lastComplaint.category}`, {
-        icon: <MessageSquare className="w-4 h-4 text-purple-600" />,
-      });
-    }
-    if (lastBooking && isNew(lastBooking.created_at)) {
-      toast(`New Amenity Booking created by Resident ${lastBooking.resident_id} – ${lastBooking.amenity_name}`, {
-        icon: <Calendar className="w-4 h-4 text-amber-600" />,
-      });
-    }
-    if (lastMaintenance && isNew(lastMaintenance.created_at)) {
-      toast("New Maintenance generated for Resident", {
-        icon: <CreditCard className="w-4 h-4 text-emerald-600" />,
-      });
-    }
-  }, [complaints.length, bookings.length, maintenance.length]);
-
+  // Notification logic removed as per user request
+  
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -1547,7 +1526,7 @@ export default function AdminDashboard({
                           {b.event_name || 'N/A'}
                         </td>
                         <td className="px-6 py-3 font-bold text-slate-800">
-                          {b.booking_date}
+                          {format(new Date(b.booking_date), 'dd MMM yyyy')}
                         </td>
                         <td className="px-6 py-3 text-slate-500">
                           {b.start_time} - {b.end_time}
@@ -1928,7 +1907,7 @@ export default function AdminDashboard({
               <div>
                 <h3 className="text-xl font-black">Update Booking Times</h3>
                 <p className="text-blue-100 text-xs font-medium uppercase tracking-wider">
-                  {editingBooking.amenity_name} - {editingBooking.booking_date}
+                  {editingBooking.amenity_name} - {format(new Date(editingBooking.booking_date), 'dd MMM yyyy')}
                 </p>
               </div>
               <button onClick={() => setShowBookingEditModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
@@ -2631,7 +2610,7 @@ NOTIFY pgrst, 'reload schema';`);
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Booking Date</p>
-                      <p className="text-sm font-bold text-slate-800">{selectedBooking.booking_date}</p>
+                      <p className="text-sm font-bold text-slate-800">{format(new Date(selectedBooking.booking_date), 'dd MMM yyyy')}</p>
                     </div>
                   </div>
                 </div>

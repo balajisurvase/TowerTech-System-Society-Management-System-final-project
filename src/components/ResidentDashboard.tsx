@@ -46,6 +46,22 @@ export default function ResidentDashboard({
   onLogout,
   setActiveTab
 }: ResidentDashboardProps & { setActiveTab: (tab: string) => void }) {
+  const societyBookingsSorted = (bookings || [])
+    .filter(b => {
+      if (!resident.society_id) return true;
+      return !b.society_id || b.society_id === resident.society_id;
+    })
+    .sort((a, b) => {
+      const idA = String(a.booking_id || a.id || '');
+      const idB = String(b.booking_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
+      const dateA = new Date(a.booking_date || a.created_at || 0).getTime();
+      const dateB = new Date(b.booking_date || b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -110,13 +126,54 @@ export default function ResidentDashboard({
   const residentBookings = localBookings;
 
   // Filter society-wide data (excluding PII for complaints)
-  const societyComplaints = complaints.map(c => ({
-    ...c,
-    name: c.resident_id === resident.resident_id ? c.name : 'Resident',
-    flat_no: c.resident_id === resident.resident_id ? c.flat_no : 'Hidden',
-    tower: c.resident_id === resident.resident_id ? c.tower : 'Hidden',
-    complaint_date: c.resident_id === resident.resident_id ? c.complaint_date : 'Hidden'
-  }));
+  const societyComplaints = (complaints || [])
+    .filter(c => {
+      // If resident has no society_id, show all (prototype mode)
+      if (!resident.society_id) return true;
+      // Show if it matches society_id or if complaint has no society_id (legacy)
+      return !c.society_id || c.society_id === resident.society_id;
+    })
+    .map(c => ({
+      ...c,
+      name: c.name || 'Resident',
+      flat_no: c.flat_no || 'N/A',
+      tower: c.tower || 'N/A',
+      complaint_date: c.complaint_date || c.date || new Date().toISOString()
+    }))
+    .sort((a, b) => {
+      const idA = String(a.complaint_id || a.id || '');
+      const idB = String(b.complaint_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
+      const dateA = new Date(a.complaint_date || a.date || 0).getTime();
+      const dateB = new Date(b.complaint_date || b.date || 0).getTime();
+      return dateB - dateA;
+    });
+
+  const myComplaintsSorted = (myComplaints || [])
+    .sort((a, b) => {
+      const idA = String(a.complaint_id || a.id || '');
+      const idB = String(b.complaint_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
+      const dateA = new Date(a.complaint_date || a.date || 0).getTime();
+      const dateB = new Date(b.complaint_date || b.date || 0).getTime();
+      return dateB - dateA;
+    });
+
+  const residentBookingsSorted = (residentBookings || [])
+    .sort((a, b) => {
+      const idA = String(a.booking_id || a.id || '');
+      const idB = String(b.booking_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
+      const dateA = new Date(a.booking_date || a.created_at || 0).getTime();
+      const dateB = new Date(b.booking_date || b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -898,7 +955,7 @@ export default function ResidentDashboard({
                   </div>
                 </div>
                 <div className="space-y-6">
-                  {(viewAllComplaints ? societyComplaints : myComplaints).map((c, index) => (
+                  {(viewAllComplaints ? societyComplaints : myComplaintsSorted).map((c, index) => (
                     <div key={c.complaint_id || c.id || `complaint-${index}`} className="bg-slate-50/50 rounded-3xl border border-slate-100 p-6 hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all group">
                       <div className="flex flex-col md:flex-row justify-between gap-6">
                         <div className="flex-1 space-y-4">
@@ -908,6 +965,9 @@ export default function ResidentDashboard({
                             </span>
                             <span className="px-3 py-1 bg-white border border-slate-200 text-slate-600 text-[10px] font-black rounded-lg uppercase tracking-widest">
                               T-{c.tower} / {c.flat_no}
+                            </span>
+                            <span className="px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest">
+                              {c.name}
                             </span>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                               {format(new Date(c.complaint_date), 'dd MMM yyyy')}
@@ -947,7 +1007,7 @@ export default function ResidentDashboard({
                       </div>
                     </div>
                   ))}
-                  {(viewAllComplaints ? societyComplaints : myComplaints).length === 0 && (
+                  {(viewAllComplaints ? societyComplaints : myComplaintsSorted).length === 0 && (
                     <div className="text-center py-20 bg-slate-50/50 rounded-[2.5rem] border border-dashed border-slate-200">
                       <MessageSquare className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                       <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No complaints found</p>
@@ -1006,14 +1066,14 @@ export default function ResidentDashboard({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {bookings.length === 0 ? (
+                        {societyBookingsSorted.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-bold">
                               No bookings found in the society.
                             </td>
                           </tr>
                         ) : (
-                          bookings.map((b, index) => (
+                          societyBookingsSorted.map((b, index) => (
                             <tr key={b.booking_id || b.id || `booking-all-${index}`} className="hover:bg-slate-50 transition-colors text-xs">
                               <td className="px-8 py-6 font-black text-indigo-600">{b.booking_id}</td>
                               <td className="px-8 py-6">

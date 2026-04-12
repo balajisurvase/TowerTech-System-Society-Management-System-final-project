@@ -150,15 +150,16 @@ export const societyService = {
 
   async createMaintenanceBill(bill: Omit<MaintenanceRecord, 'id' | 'maintenance_id'>) {
     // Check for duplicate bill for the same flat and month
-    const { data: existingBill, error: checkError } = await supabase
+    const { data: existingBills, error: checkError } = await supabase
       .from('maintenance')
       .select('maintenance_id')
+      .eq('society_id', bill.society_id)
+      .eq('tower', bill.tower)
       .eq('flat_no', bill.flat_no)
-      .eq('month', bill.month)
-      .maybeSingle();
+      .eq('month', bill.month);
 
     if (checkError && checkError.code !== '42703') throw checkError;
-    if (existingBill) {
+    if (existingBills && existingBills.length > 0) {
       throw new Error(`Maintenance bill already generated for flat ${bill.flat_no} in ${bill.month}`);
     }
 
@@ -243,10 +244,25 @@ export const societyService = {
   async createBulkMaintenanceBills(bills: Omit<MaintenanceRecord, 'id' | 'maintenance_id'>[]) {
     if (bills.length === 0) return [];
 
+    // Check for existing bills to avoid duplicates in bulk
+    const { data: existingBills, error: checkError } = await supabase
+      .from('maintenance')
+      .select('tower, flat_no, month, society_id')
+      .eq('society_id', bills[0].society_id)
+      .in('month', [...new Set(bills.map(b => b.month))]);
+
+    const existingMap = new Set((existingBills || []).map(b => `${b.tower}-${b.flat_no}-${b.month}`));
+    
+    const newBills = bills.filter(b => !existingMap.has(`${b.tower}-${b.flat_no}-${b.month}`));
+    
+    if (newBills.length === 0) {
+      throw new Error('All selected residents already have bills for this month.');
+    }
+
     const { count } = await supabase.from('maintenance').select('*', { count: 'exact', head: true });
     let currentCount = count || 0;
 
-    const billsWithIds = bills.map((bill) => {
+    const billsWithIds = newBills.map((bill) => {
       currentCount++;
       const rawId = generateUUID();
       const maintenance_id = `M${currentCount.toString().padStart(3, '0')}`;

@@ -337,7 +337,7 @@ export default function AdminDashboard({
     setUpdating(id);
     try {
       await societyService.deleteBooking(id);
-      toast.success('Booking deleted successfully');
+      toast.success(`Booking ${id} deleted successfully`);
       onRefresh();
     } catch (error: any) {
       toast.error('Delete failed: ' + error.message);
@@ -352,7 +352,7 @@ export default function AdminDashboard({
     setUpdating(residentId);
     try {
       await societyService.deleteResident(residentId);
-      toast.success('Resident deleted successfully');
+      toast.success(`Resident ${residentId} deleted successfully`);
       onRefresh();
     } catch (error: any) {
       toast.error('Delete failed: ' + error.message);
@@ -367,7 +367,7 @@ export default function AdminDashboard({
     setUpdating(id);
     try {
       await societyService.deleteComplaint(id);
-      toast.success('Complaint deleted successfully');
+      toast.success(`Complaint ${id} deleted successfully`);
       onRefresh();
     } catch (error: any) {
       toast.error('Delete failed: ' + error.message);
@@ -646,6 +646,11 @@ export default function AdminDashboard({
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
+      const idA = String(a.complaint_id || a.id || '');
+      const idB = String(b.complaint_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
       const dateA = new Date(a.created_at || a.complaint_date || a.date || 0).getTime();
       const dateB = new Date(b.created_at || b.complaint_date || b.date || 0).getTime();
       return dateB - dateA;
@@ -661,6 +666,11 @@ export default function AdminDashboard({
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
+      const idA = String(a.booking_id || a.id || '');
+      const idB = String(b.booking_id || b.id || '');
+      const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+      if (idCompare !== 0) return idCompare;
+
       const dateA = new Date(a.created_at || a.booking_date || 0).getTime();
       const dateB = new Date(b.created_at || b.booking_date || 0).getTime();
       return dateB - dateA;

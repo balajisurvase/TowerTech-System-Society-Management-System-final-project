@@ -32,7 +32,16 @@ export default function AmenityBooking({ resident, onRefresh }: AmenityBookingPr
         societyService.getResidentBookings(resident.resident_id),
         societyService.getAmenities(resident.society_id)
       ]);
-      setBookings(bookingsData);
+      setBookings((bookingsData || []).sort((a, b) => {
+        const idA = String(a.booking_id || a.id || '');
+        const idB = String(b.booking_id || b.id || '');
+        const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
+        if (idCompare !== 0) return idCompare;
+
+        const dateA = new Date(a.booking_date || a.created_at || 0).getTime();
+        const dateB = new Date(b.booking_date || b.created_at || 0).getTime();
+        return dateB - dateA;
+      }));
       setAmenitiesList(amenitiesData);
       
       if (amenitiesData.length > 0 && !formData.amenity_name) {

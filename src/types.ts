@@ -55,6 +55,7 @@ export interface Complaint {
   flat_no: string;
   complaint_date: string;
   category?: string;
+  complaint_type?: 'Electricity Issue' | 'Water Supply Issue' | 'Lift Issue' | 'Cleanliness Issue' | 'Security Issue';
   description: string;
   date?: string;
   created_at?: string;

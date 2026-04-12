@@ -94,6 +94,7 @@ export default function ResidentDashboard({
   const [showComplaintSuccessModal, setShowComplaintSuccessModal] = useState(false);
   const [viewAllComplaints, setViewAllComplaints] = useState(false);
   const [viewAllBookings, setViewAllBookings] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<MaintenanceRecord | null>(null);
 
   const [localMaintenance, setLocalMaintenance] = useState<MaintenanceRecord[]>([]);
   const [localComplaints, setLocalComplaints] = useState<Complaint[]>([]);
@@ -201,6 +202,7 @@ export default function ResidentDashboard({
         flat_no: resident.flat,
         tower: resident.tower,
         category: complaintCategory,
+        complaint_type: complaintCategory as any,
         description,
         status: 'Pending',
         complaint_date: new Date().toISOString().split('T')[0],
@@ -564,6 +566,82 @@ export default function ResidentDashboard({
     </div>
   );
 
+  const renderBillModal = () => {
+    if (!selectedBill) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
+          <div className="p-8 bg-gradient-to-br from-indigo-600 to-violet-700 text-white relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+            <div className="flex justify-between items-start relative z-10">
+              <div>
+                <h3 className="text-2xl font-black tracking-tight">Maintenance Bill</h3>
+                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1 opacity-80">Details & Receipt</p>
+              </div>
+              <button onClick={() => setSelectedBill(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bill ID</p>
+                <p className="text-sm font-black text-indigo-600">{selectedBill.maintenance_id}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+                <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase inline-block ${
+                  selectedBill.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {selectedBill.status}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resident Name</p>
+                <p className="text-sm font-bold text-slate-800">{selectedBill.resident_name || resident.name}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Flat Details</p>
+                <p className="text-sm font-bold text-slate-800">T-{selectedBill.tower} / {selectedBill.flat_no}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Billing Month</p>
+                <p className="text-sm font-bold text-slate-800">{selectedBill.month}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Due Date</p>
+                <p className="text-sm font-bold text-slate-800">{format(new Date(selectedBill.due_date), 'dd MMM yyyy')}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+              <div className="flex justify-between items-center">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Amount</p>
+                <p className="text-xl font-black text-slate-900">₹{selectedBill.amount}</p>
+              </div>
+              {selectedBill.status === 'Paid' && selectedBill.payment_date && (
+                <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Payment Date</p>
+                  <p className="text-sm font-black text-emerald-600">{format(new Date(selectedBill.payment_date), 'dd MMM yyyy HH:mm')}</p>
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => setSelectedBill(null)}
+              className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs shadow-lg shadow-slate-200"
+            >
+              Close Details
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -820,12 +898,13 @@ export default function ResidentDashboard({
                       <th className="px-8 py-4">Amount</th>
                       <th className="px-8 py-4">Due Date</th>
                       <th className="px-8 py-4">Status</th>
+                      <th className="px-8 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {loadingData ? (
                       <tr>
-                        <td colSpan={6} className="px-8 py-12 text-center">
+                        <td colSpan={7} className="px-8 py-12 text-center">
                           <div className="flex justify-center items-center gap-2 text-indigo-600">
                             <div className="w-5 h-5 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
                             <span className="font-bold">Loading records...</span>
@@ -834,7 +913,7 @@ export default function ResidentDashboard({
                       </tr>
                     ) : filteredMaintenance.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-8 py-12 text-center text-slate-400 font-bold">
+                        <td colSpan={7} className="px-8 py-12 text-center text-slate-400 font-bold">
                           No maintenance records found.
                         </td>
                       </tr>
@@ -852,6 +931,15 @@ export default function ResidentDashboard({
                             }`}>
                               {m.status === 'Paid' ? 'PAID' : 'UNPAID'}
                             </span>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <button 
+                              onClick={() => setSelectedBill(m)}
+                              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                              title="View Bill Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -970,14 +1058,14 @@ export default function ResidentDashboard({
                               {c.name}
                             </span>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              {format(new Date(c.complaint_date), 'dd MMM yyyy')}
+                              {format(new Date(c.created_at || c.complaint_date || c.date || new Date()), 'dd MMM yyyy')}
                             </span>
                           </div>
                           <div>
                             <h4 className="text-lg font-black text-slate-800 mb-2">{c.category}</h4>
                             <p className="text-sm text-slate-600 font-medium leading-relaxed">{c.description}</p>
                           </div>
-                          {c.admin_comment && (
+                          {c.admin_comment && (c.resident_id === resident.resident_id) && (
                             <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                               <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Admin Response</p>
                               <p className="text-xs font-bold text-slate-700">{c.admin_comment}</p>
@@ -1250,6 +1338,7 @@ export default function ResidentDashboard({
 
       {showChangePassword && renderChangePasswordModal()}
 
+      {renderBillModal()}
       {/* Image Preview Modal */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 cursor-zoom-out"

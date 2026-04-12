@@ -1207,6 +1207,7 @@ export default function AdminDashboard({
                       <th className="px-6 py-3">Tower</th>
                       <th className="px-6 py-3">Flat</th>
                       <th className="px-6 py-3">Amount</th>
+                      <th className="px-6 py-3">Payment Date</th>
                       <th className="px-6 py-3">Status</th>
                       <th className="px-6 py-3 text-center">Actions</th>
                     </tr>
@@ -1232,6 +1233,11 @@ export default function AdminDashboard({
                         </td>
                         <td className="px-6 py-3">
                           <p className="font-black text-slate-900">₹{m.amount.toLocaleString()}</p>
+                        </td>
+                        <td className="px-6 py-3">
+                          <p className="font-bold text-slate-500">
+                            {m.payment_date ? format(new Date(m.payment_date), 'dd MMM yyyy') : '-'}
+                          </p>
                         </td>
                         <td className="px-6 py-3">
                           <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5 w-fit ${
@@ -1344,7 +1350,7 @@ export default function AdminDashboard({
                           <p className="font-bold text-slate-600">{c.resident_id}</p>
                         </td>
                         <td className="px-6 py-4 font-bold text-slate-800">
-                          {new Date(c.complaint_date || c.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(c.created_at || c.complaint_date || c.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4">
                           {(c.media || c.media_url) ? (

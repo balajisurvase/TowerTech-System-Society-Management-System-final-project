@@ -138,9 +138,16 @@ export const societyService = {
   },
 
   async updateMaintenanceStatus(maintenance_id: string, status: 'Paid' | 'Unpaid') {
+    const updates: any = { status };
+    if (status === 'Paid') {
+      updates.payment_date = new Date().toISOString();
+    } else {
+      updates.payment_date = null;
+    }
+
     const { data, error } = await supabase
       .from('maintenance')
-      .update({ status })
+      .update(updates)
       .eq('maintenance_id', maintenance_id)
       .select();
     
@@ -464,7 +471,9 @@ export const societyService = {
     const complaint = { 
       ...complaintData, 
       complaint_id,
-      id: rawId 
+      id: rawId,
+      created_at: new Date().toISOString(),
+      date: complaintData.date || complaintData.complaint_date || new Date().toISOString()
     };
 
     const { data, error } = await supabase

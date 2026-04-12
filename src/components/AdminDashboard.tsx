@@ -180,16 +180,16 @@ export default function AdminDashboard({
   }, [user.society_id]);
 
   // Calculate Statistics for Selected Month
-  const maintenanceForMonth = selectedMonth === 'All' ? maintenance : maintenance.filter(m => m.month === selectedMonth);
-  const totalResidentsCount = residents.length;
+  const maintenanceForMonth = (selectedMonth === 'All' ? maintenance : maintenance.filter(m => m.month === selectedMonth)) || [];
+  const totalResidentsCount = residents?.length || 0;
   const paidMaintenanceCount = maintenanceForMonth.filter(m => m.status === 'Paid').length;
   const unpaidMaintenanceCount = maintenanceForMonth.filter(m => m.status === 'Unpaid').length;
-  const totalComplaints = complaints.length;
-  const pendingComplaints = complaints.filter(c => c.status === 'Pending').length;
-  const doneComplaints = complaints.filter(c => c.status === 'Done' || c.status === 'Resolved').length;
-  const rejectedComplaints = complaints.filter(c => c.status === 'Rejected').length;
+  const totalComplaints = complaints?.length || 0;
+  const pendingComplaints = (complaints || []).filter(c => c.status === 'Pending').length;
+  const doneComplaints = (complaints || []).filter(c => c.status === 'Done' || c.status === 'Resolved').length;
+  const rejectedComplaints = (complaints || []).filter(c => c.status === 'Rejected').length;
   
-  const totalBookings = bookings.length;
+  const totalBookings = bookings?.length || 0;
   const totalCollectionAmount = maintenanceForMonth
     .filter(m => m.status === 'Paid')
     .reduce((sum, m) => sum + m.amount, 0);
@@ -580,7 +580,7 @@ export default function AdminDashboard({
     }
   };
 
-  const filteredResidents = residents
+  const filteredResidents = (residents || [])
     .filter(r => {
       const matchesSearch = String(r.resident_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(r.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -604,7 +604,7 @@ export default function AdminDashboard({
       return String(a.flat || '').localeCompare(String(b.flat || ''), undefined, { numeric: true, sensitivity: 'base' });
     });
 
-  const filteredMaintenance = maintenance
+  const filteredMaintenance = (maintenance || [])
     .filter(m => {
       const matchesSearch = String(m.resident_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(m.resident_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -635,7 +635,7 @@ export default function AdminDashboard({
       return resIdA.localeCompare(resIdB, undefined, { numeric: true, sensitivity: 'base' });
     });
 
-  const filteredComplaints = complaints
+  const filteredComplaints = (complaints || [])
     .filter(c => {
       const matchesSearch = String(c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(c.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -646,12 +646,12 @@ export default function AdminDashboard({
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.created_at || '').getTime();
-      const dateB = new Date(b.created_at || '').getTime();
+      const dateA = new Date(a.created_at || a.complaint_date || a.date || 0).getTime();
+      const dateB = new Date(b.created_at || b.complaint_date || b.date || 0).getTime();
       return dateB - dateA;
     });
 
-  const filteredBookings = bookings
+  const filteredBookings = (bookings || [])
     .filter(b => {
       const matchesSearch = String(b.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(b.amenity_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -661,8 +661,8 @@ export default function AdminDashboard({
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.booking_date || '').getTime();
-      const dateB = new Date(b.booking_date || '').getTime();
+      const dateA = new Date(a.created_at || a.booking_date || 0).getTime();
+      const dateB = new Date(b.created_at || b.booking_date || 0).getTime();
       return dateB - dateA;
     });
 
@@ -2649,7 +2649,7 @@ NOTIFY pgrst, 'reload schema';`);
             <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
               <div>
                 <h3 className="text-2xl font-black">Complaint Details</h3>
-                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">C{selectedComplaint.complaint_id}</p>
+                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">{selectedComplaint.complaint_id}</p>
               </div>
               <button onClick={() => setSelectedComplaint(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                 <X className="w-6 h-6" />
@@ -2659,7 +2659,7 @@ NOTIFY pgrst, 'reload schema';`);
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Complaint ID</p>
-                  <p className="text-sm font-black text-slate-800">C{selectedComplaint.complaint_id}</p>
+                  <p className="text-sm font-black text-slate-800">{selectedComplaint.complaint_id}</p>
                 </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Category</p>

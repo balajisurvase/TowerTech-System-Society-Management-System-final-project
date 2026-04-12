@@ -46,9 +46,9 @@ export default function App() {
       const uniqueResidents = Array.from(new Map(resData.map(r => [r.resident_id, r])).values())
         .filter(r => r.resident_id !== 'R081' && r.name.toLowerCase() !== 'dhilipan');
       setResidents(uniqueResidents);
-      setMaintenance(mainData);
-      setComplaints(compData);
-      setBookings(bookingData);
+      setMaintenance(mainData || []);
+      setComplaints(compData || []);
+      setBookings(bookingData || []);
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
       // Fallback to initial data for prototype if Supabase tables are not set up

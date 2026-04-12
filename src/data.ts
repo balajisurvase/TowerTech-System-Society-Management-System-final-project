@@ -109,10 +109,10 @@ export const initialMaintenance: MaintenanceRecord[] = Array.from({ length: 80 }
 });
 
 export const initialComplaints: Complaint[] = [
-  { id: 'C001', complaint_id: 'C001', resident_id: 'R001', name: 'Rahul Sharma', tower: 'A', flat_no: 'A101', category: 'Water Supply Issue', description: 'Water leakage in kitchen', date: '2026-03-10', complaint_date: '2026-03-10', status: 'Pending', society_id: 'GV2026' },
-  { id: 'C002', complaint_id: 'C002', resident_id: 'R002', name: 'Priya Mehta', tower: 'A', flat_no: 'A102', category: 'Electricity Issue', description: 'Power fluctuation in living room', date: '2026-03-11', complaint_date: '2026-03-11', status: 'Pending', society_id: 'GV2026' },
-  { id: 'C003', complaint_id: 'C003', resident_id: 'R003', name: 'Amit Patil', tower: 'A', flat_no: 'A103', category: 'Lift Issue', description: 'Door hinge broken', date: '2026-03-12', complaint_date: '2026-03-12', status: 'Process', society_id: 'GV2026' },
-  { id: 'C004', complaint_id: 'C004', resident_id: 'R004', name: 'Sneha Joshi', tower: 'A', flat_no: 'A104', category: 'Cleanliness Issue', description: 'Common area not cleaned', date: '2026-03-13', complaint_date: '2026-03-13', status: 'Done', society_id: 'GV2026' },
+  { id: 'C001', complaint_id: 'C001', resident_id: 'R001', resident_name: 'Rahul Sharma', tower: 'A', flat_no: 'A101', category: 'Water Supply Issue', description: 'Water leakage in kitchen', complaint_date: '2026-03-10', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C002', complaint_id: 'C002', resident_id: 'R002', resident_name: 'Priya Mehta', tower: 'A', flat_no: 'A102', category: 'Electricity Issue', description: 'Power fluctuation in living room', complaint_date: '2026-03-11', status: 'Pending', society_id: 'GV2026' },
+  { id: 'C003', complaint_id: 'C003', resident_id: 'R003', resident_name: 'Amit Patil', tower: 'A', flat_no: 'A103', category: 'Lift Issue', description: 'Door hinge broken', complaint_date: '2026-03-12', status: 'Process', society_id: 'GV2026' },
+  { id: 'C004', complaint_id: 'C004', resident_id: 'R004', resident_name: 'Sneha Joshi', tower: 'A', flat_no: 'A104', category: 'Cleanliness Issue', description: 'Common area not cleaned', complaint_date: '2026-03-13', status: 'Done', society_id: 'GV2026' },
 ];
 
 export const initialBookings: Booking[] = [

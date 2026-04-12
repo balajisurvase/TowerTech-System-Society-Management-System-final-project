@@ -50,20 +50,16 @@ export interface Complaint {
   id?: string;
   complaint_id: string;
   resident_id: string;
-  name?: string;
+  resident_name?: string;
   tower: string;
-  flat_no: string;
+  flat_no: string | number;
   complaint_date: string;
   category?: string;
-  complaint_type?: 'Electricity Issue' | 'Water Supply Issue' | 'Lift Issue' | 'Cleanliness Issue' | 'Security Issue';
   description: string;
-  date?: string;
-  created_at?: string;
   status: string;
   society_id: string;
   admin_id?: string;
-  media?: string;
-  media_url?: string;
+  media?: Media[];
   admin_comment?: string;
 }
 

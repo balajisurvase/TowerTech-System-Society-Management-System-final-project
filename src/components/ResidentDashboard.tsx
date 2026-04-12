@@ -136,10 +136,10 @@ export default function ResidentDashboard({
     })
     .map(c => ({
       ...c,
-      name: c.name || 'Resident',
+      resident_name: c.resident_name || 'Resident',
       flat_no: c.flat_no || 'N/A',
       tower: c.tower || 'N/A',
-      complaint_date: c.complaint_date || c.date || new Date().toISOString()
+      complaint_date: c.complaint_date || new Date().toISOString().split('T')[0]
     }))
     .sort((a, b) => {
       const idA = String(a.complaint_id || a.id || '');
@@ -147,8 +147,8 @@ export default function ResidentDashboard({
       const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
       if (idCompare !== 0) return idCompare;
 
-      const dateA = new Date(a.complaint_date || a.date || 0).getTime();
-      const dateB = new Date(b.complaint_date || b.date || 0).getTime();
+      const dateA = new Date(a.complaint_date || 0).getTime();
+      const dateB = new Date(b.complaint_date || 0).getTime();
       return dateB - dateA;
     });
 
@@ -159,8 +159,8 @@ export default function ResidentDashboard({
       const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
       if (idCompare !== 0) return idCompare;
 
-      const dateA = new Date(a.complaint_date || a.date || 0).getTime();
-      const dateB = new Date(b.complaint_date || b.date || 0).getTime();
+      const dateA = new Date(a.complaint_date || 0).getTime();
+      const dateB = new Date(b.complaint_date || 0).getTime();
       return dateB - dateA;
     });
 
@@ -191,23 +191,54 @@ export default function ResidentDashboard({
     }
     setSubmitting(true);
     try {
-      let media = '';
+      // Fetch latest resident data to ensure all fields are present
+      let residentData = resident;
+      if (resident.email) {
+        const latestResident = await societyService.getResidentByEmail(resident.email);
+        if (latestResident) {
+          residentData = latestResident;
+        }
+      }
+
+      let mediaUrl = '';
       if (mediaFile) {
-        media = await societyService.uploadMedia(mediaFile);
+        try {
+          mediaUrl = await societyService.uploadMedia(mediaFile);
+        } catch (uploadError: any) {
+          console.error('Media upload failed, proceeding without media:', uploadError);
+          toast.error('Media upload failed: ' + uploadError.message + '. Submitting complaint without attachment.');
+          // We continue the execution to allow the complaint to be submitted even if media fails
+        }
+      }
+
+      const flatNoValue = residentData.flat || residentData.flat_number || '';
+      const towerValue = residentData.tower || '';
+      const residentIdValue = residentData.resident_id || residentData.id || '';
+      const residentName = residentData.name || '';
+
+      if (!residentIdValue || !towerValue || !flatNoValue) {
+        toast.error('Your profile is missing required details (Tower/Flat). Please update your profile before submitting a complaint.');
+        setSubmitting(false);
+        return;
+      }
+
+      // Handle flat_no as number if possible for int8 columns
+      let finalFlatNo: string | number = flatNoValue;
+      if (typeof flatNoValue === 'string' && /^\d+$/.test(flatNoValue)) {
+        finalFlatNo = parseInt(flatNoValue, 10);
       }
 
       await societyService.addComplaint({
-        resident_id: resident.resident_id,
-        name: resident.name,
-        flat_no: resident.flat,
-        tower: resident.tower,
+        resident_id: residentIdValue,
+        resident_name: residentName,
+        flat_no: finalFlatNo,
+        tower: towerValue,
         category: complaintCategory,
-        complaint_type: complaintCategory as any,
         description,
         status: 'Pending',
         complaint_date: new Date().toISOString().split('T')[0],
-        media,
-        society_id: resident.society_id
+        media: mediaUrl as any, // This will be handled by addComplaint to save to media table
+        society_id: residentData.society_id || ''
       });
       
       setComplaintCategory('');
@@ -1055,16 +1086,29 @@ export default function ResidentDashboard({
                               T-{c.tower} / {c.flat_no}
                             </span>
                             <span className="px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                              {c.name}
+                              {c.resident_name || c.name}
                             </span>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              {format(new Date(c.created_at || c.complaint_date || c.date || new Date()), 'dd MMM yyyy')}
+                              {format(new Date(c.complaint_date || new Date()), 'dd MMM yyyy')}
                             </span>
                           </div>
                           <div>
                             <h4 className="text-lg font-black text-slate-800 mb-2">{c.category}</h4>
                             <p className="text-sm text-slate-600 font-medium leading-relaxed">{c.description}</p>
                           </div>
+                          {c.media && c.media.length > 0 ? (
+                            <div className="pt-2">
+                              <button 
+                                onClick={() => setSelectedImage(c.media![0].file_url)}
+                                className="flex items-center gap-2 text-indigo-600 text-[10px] font-black hover:underline group/btn"
+                              >
+                                <ImageIcon className="w-3 h-3 transition-transform group-hover/btn:scale-110" />
+                                VIEW ATTACHMENT
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] font-bold text-slate-400 italic pt-2">No Media Uploaded</p>
+                          )}
                           {c.admin_comment && (c.resident_id === resident.resident_id) && (
                             <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                               <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">Admin Response</p>
@@ -1083,9 +1127,9 @@ export default function ResidentDashboard({
                              c.status === 'Pending' ? 'PENDING' : 
                              c.status === 'Process' ? 'PROCESS' : 'REJECT'}
                           </span>
-                          {c.media && (
+                          {c.media && c.media.length > 0 && (
                             <button 
-                              onClick={() => setSelectedImage(c.media_url || c.media)}
+                              onClick={() => setSelectedImage(c.media![0].file_url)}
                               className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all shadow-sm"
                             >
                               <ImageIcon className="w-6 h-6" />

@@ -114,9 +114,16 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const currentResident = user.resident_id 
+  const foundResident = user.resident_id 
     ? residents.find(r => r.resident_id === user.resident_id) 
     : null;
+
+  const currentResident = foundResident ? {
+    ...foundResident,
+    flat: foundResident.flat || user.flat || '',
+    tower: foundResident.tower || user.tower || '',
+    resident_id: foundResident.resident_id || user.resident_id || ''
+  } : (user.resident_id ? (user as unknown as Resident) : null);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">

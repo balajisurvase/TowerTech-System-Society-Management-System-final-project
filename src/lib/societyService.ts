@@ -31,6 +31,20 @@ export const societyService = {
     return data as Resident[];
   },
 
+  async getResidentByEmail(email: string) {
+    const { data, error } = await supabase
+      .from('resident')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching resident by email:', error);
+      return null;
+    }
+    return data as Resident | null;
+  },
+
   async createSocietyAccount(societyData: Omit<Society, 'society_id'>, adminPassword: string) {
     // 1. Generate Society ID: SOC2026XXXX
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
@@ -426,14 +440,15 @@ export const societyService = {
       query = query.eq('society_id', society_id);
     }
 
-    const { data, error } = await query.order('date', { ascending: false });
+    const { data: complaints, error } = await query.order('complaint_date', { ascending: false });
     
     if (error) {
       // Fallback: if resident_id column is missing, try to fetch all and filter in memory
       if (error.code === '42703' || error.message?.includes('resident_id')) {
         const { data: allData, error: allErr } = await supabase.from('complaint').select('*');
         if (allErr) return [] as Complaint[];
-        return (allData || []).filter((c: any) => c.resident_id === resident_id) as Complaint[];
+        const filtered = (allData || []).filter((c: any) => c.resident_id === resident_id);
+        return await this.attachMediaToComplaints(filtered);
       }
       // If table is missing, return empty array
       if (error.code === '42P01' || error.code === 'PGRST205') {
@@ -442,14 +457,15 @@ export const societyService = {
       console.error('Error fetching resident complaints:', error);
       return [] as Complaint[];
     }
-    return data as Complaint[];
+    
+    return await this.attachMediaToComplaints(complaints || []);
   },
 
   async getComplaints() {
-    const { data, error } = await supabase
+    const { data: complaints, error } = await supabase
       .from('complaint')
       .select('*')
-      .order('date', { ascending: false });
+      .order('complaint_date', { ascending: false });
     
     if (error) {
       if (error.code === '42P01' || error.code === 'PGRST205') {
@@ -458,22 +474,61 @@ export const societyService = {
       console.error('Error fetching complaints:', error);
       throw error;
     }
-    return data as Complaint[];
+    
+    return await this.attachMediaToComplaints(complaints || []);
+  },
+
+  async attachMediaToComplaints(complaints: any[]) {
+    if (!complaints || complaints.length === 0) return [] as Complaint[];
+
+    const complaintIds = complaints.map(c => c.complaint_id).filter(Boolean);
+    const residentIds = complaints.map(c => c.resident_id).filter(Boolean);
+    
+    // Fetch media and residents in parallel
+    const [mediaResult, residentsResult] = await Promise.all([
+      supabase.from('media').select('*').in('complaint_id', complaintIds),
+      supabase.from('resident').select('resident_id, name').in('resident_id', residentIds)
+    ]);
+
+    const media = mediaResult.data || [];
+    const residents = residentsResult.data || [];
+
+    return complaints.map(c => {
+      const resident = residents.find(r => r.resident_id === c.resident_id);
+      return {
+        ...c,
+        resident_name: resident?.name || 'Resident',
+        media: media.filter(m => m.complaint_id === c.complaint_id) || []
+      };
+    }) as Complaint[];
   },
 
   async addComplaint(complaintData: Omit<Complaint, 'id' | 'complaint_id'>) {
+    // Validation: resident_id, tower, flat_no are required
+    if (!complaintData.resident_id || !complaintData.tower || !complaintData.flat_no) {
+      throw new Error('Resident ID, Tower, and Flat Number are required for complaint submission.');
+    }
+
     // Generate a sequential-like ID
     const { count } = await supabase.from('complaint').select('*', { count: 'exact', head: true });
     const nextNum = (count || 0) + 1;
     const complaint_id = `C${nextNum.toString().padStart(3, '0')}`;
     const rawId = generateUUID();
 
+    // Prepare complaint data (remove media fields that might be in complaintData)
+    const { media: mediaFromData, ...restOfComplaintData } = complaintData as any;
+
     const complaint = { 
-      ...complaintData, 
       complaint_id,
       id: rawId,
-      created_at: new Date().toISOString(),
-      date: complaintData.date || complaintData.complaint_date || new Date().toISOString()
+      resident_id: complaintData.resident_id,
+      tower: complaintData.tower,
+      flat_no: complaintData.flat_no,
+      category: complaintData.category,
+      description: complaintData.description,
+      status: complaintData.status,
+      society_id: complaintData.society_id,
+      complaint_date: complaintData.complaint_date || new Date().toISOString().split('T')[0]
     };
 
     const { data, error } = await supabase
@@ -482,86 +537,25 @@ export const societyService = {
       .select();
     
     if (error) {
-      // If invalid UUID syntax (22P02), retry with plain UUID for complaint_id
-      if (error.code === '22P02') {
-        const { data: retryData, error: retryError } = await supabase
-          .from('complaint')
-          .insert([{ ...complaint, complaint_id: rawId }])
-          .select();
-        
-        if (retryError) throw retryError;
-        return retryData && retryData.length > 0 ? retryData[0] as Complaint : null;
-      }
-
-      // If columns are missing (like 'name') or NOT NULL constraint violated, try to insert without them
-      if (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('column') || error.message?.includes('null value')) {
-        // Strip out fields that are often missing in simpler schemas
-        const { name, society_id, ...complaintWithoutName } = complaint as any;
-        const { data: retryData, error: retryError } = await supabase
-          .from('complaint')
-          .insert([complaintWithoutName])
-          .select();
-        
-        if (retryError) {
-          console.error('Error submitting complaint after retry:', retryError);
-          // Try super minimal
-          if (retryError.code === '42703' || retryError.code === 'PGRST204' || retryError.message?.includes('column')) {
-            const superMinimalComplaint = {
-              id: generateUUID(),
-              complaint_id: complaint.complaint_id,
-              category: complaint.category,
-              description: complaint.description,
-              date: complaint.date || complaint.complaint_date,
-              status: complaint.status
-            };
-            const { data: finalData, error: finalError } = await supabase
-              .from('complaint')
-              .insert([superMinimalComplaint])
-              .select();
-            if (finalError) throw finalError;
-            
-            // If media is present, try to save to media table
-            if (complaint.media || complaint.media_url) {
-              await this.saveMedia({
-                complaint_id: complaint.complaint_id,
-                file_url: complaint.media || complaint.media_url || '',
-                uploaded_by: complaint.resident_id,
-                society_id: complaint.society_id
-              }).catch(err => console.warn('Failed to save to media table:', err));
-            }
-            
-            return finalData && finalData.length > 0 ? finalData[0] as Complaint : null;
-          }
-          throw retryError;
-        }
-        
-        // If media is present, try to save to media table
-        if (complaint.media || complaint.media_url) {
-          await this.saveMedia({
-            complaint_id: complaint.complaint_id,
-            file_url: complaint.media || complaint.media_url || '',
-            uploaded_by: complaint.resident_id,
-            society_id: complaint.society_id
-          }).catch(err => console.warn('Failed to save to media table:', err));
-        }
-        
-        return retryData && retryData.length > 0 ? retryData[0] as Complaint : null;
-      }
       console.error('Error submitting complaint:', error);
       throw error;
     }
     
-    // If media is present, try to save to media table
-    if (complaint.media || complaint.media_url) {
+    const insertedComplaint = data && data.length > 0 ? data[0] as Complaint : null;
+
+    // If media is present, save to media table
+    // We check both mediaFromData (from Omit) and any other possible media URL source
+    const mediaUrl = mediaFromData || (complaintData as any).media_url;
+    if (mediaUrl && insertedComplaint) {
       await this.saveMedia({
-        complaint_id: complaint.complaint_id,
-        file_url: complaint.media || complaint.media_url || '',
-        uploaded_by: complaint.resident_id,
-        society_id: complaint.society_id
+        complaint_id: insertedComplaint.complaint_id,
+        file_url: mediaUrl,
+        uploaded_by: insertedComplaint.resident_id,
+        society_id: insertedComplaint.society_id
       }).catch(err => console.warn('Failed to save to media table:', err));
     }
     
-    return data && data.length > 0 ? data[0] as Complaint : null;
+    return insertedComplaint;
   },
 
   async saveMedia(mediaData: Omit<Media, 'id' | 'media_id'>) {
@@ -899,27 +893,38 @@ export const societyService = {
   },
 
   async uploadMedia(file: File) {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `complaints/${fileName}`;
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = fileName;
 
-    const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filePath, file);
+    // Try these bucket names in order
+    const buckets = ['complaint', 'complaints', 'media', 'public'];
+    let lastError = null;
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      if (uploadError.message?.includes('Bucket not found')) {
-        throw new Error('Storage bucket "media" not found. Please create a public bucket named "media" in your Supabase project.');
+    for (const bucket of buckets) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(filePath, file);
+
+        if (!uploadError) {
+          const { data } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(filePath);
+          return data.publicUrl;
+        }
+        
+        lastError = uploadError;
+        // If it's not a "Bucket not found" error, don't bother trying other buckets
+        if (!uploadError.message?.includes('Bucket not found')) {
+          break;
+        }
+      } catch (err) {
+        lastError = err;
       }
-      throw uploadError;
     }
 
-    const { data } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
+    console.error('Upload error after trying all buckets:', lastError);
+    throw new Error('Storage bucket not found. Please create a public bucket named "complaint" in your Supabase Storage console to enable media uploads.');
   },
 
   async seedDatabase(initialResidents: Resident[], initialAdmins: any[], initialMaintenance: MaintenanceRecord[], initialComplaints: Complaint[], initialBookings: Booking[], initialAmenities: Amenity[]) {

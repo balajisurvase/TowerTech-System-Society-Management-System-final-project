@@ -637,7 +637,7 @@ export default function AdminDashboard({
 
   const filteredComplaints = (complaints || [])
     .filter(c => {
-      const matchesSearch = String(c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = String(c.resident_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(c.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(c.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(c.complaint_id || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -651,8 +651,8 @@ export default function AdminDashboard({
       const idCompare = idB.localeCompare(idA, undefined, { numeric: true });
       if (idCompare !== 0) return idCompare;
 
-      const dateA = new Date(a.created_at || a.complaint_date || a.date || 0).getTime();
-      const dateB = new Date(b.created_at || b.complaint_date || b.date || 0).getTime();
+      const dateA = new Date(a.complaint_date || 0).getTime();
+      const dateB = new Date(b.complaint_date || 0).getTime();
       return dateB - dateA;
     });
 
@@ -1327,7 +1327,7 @@ export default function AdminDashboard({
                       <th className="px-6 py-4">Complaint ID</th>
                       <th className="px-6 py-4">Category</th>
                       <th className="px-6 py-4">Tower / Flat</th>
-                      <th className="px-6 py-4">Resident ID</th>
+                      <th className="px-6 py-4">Resident</th>
                       <th className="px-6 py-4">Date</th>
                       <th className="px-6 py-4">Media</th>
                       <th className="px-6 py-4">Status</th>
@@ -1347,15 +1347,16 @@ export default function AdminDashboard({
                           <p className="font-black text-slate-400">T-{c.tower} / {c.flat_no}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-bold text-slate-600">{c.resident_id}</p>
+                          <p className="font-bold text-slate-800">{c.resident_name || 'Resident'}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{c.resident_id}</p>
                         </td>
                         <td className="px-6 py-4 font-bold text-slate-800">
-                          {new Date(c.created_at || c.complaint_date || c.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {new Date(c.complaint_date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4">
-                          {(c.media || c.media_url) ? (
+                          {c.media && c.media.length > 0 ? (
                             <button 
-                              onClick={() => setSelectedImage(c.media || c.media_url || null)}
+                              onClick={() => setSelectedImage(c.media![0].file_url)}
                               className="text-indigo-600 text-[10px] font-black hover:underline flex items-center gap-1"
                             >
                               <ImageIcon className="w-3 h-3" />
@@ -2696,7 +2697,7 @@ NOTIFY pgrst, 'reload schema';`);
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date</p>
                   <p className="text-sm font-black text-slate-800">
-                    {new Date(selectedComplaint.complaint_date || selectedComplaint.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {new Date(selectedComplaint.complaint_date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
               </div>
@@ -2711,10 +2712,10 @@ NOTIFY pgrst, 'reload schema';`);
               <div className="space-y-3">
                 <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest">Media Attachment</h4>
                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                  {(selectedComplaint.media || selectedComplaint.media_url) ? (
+                  {selectedComplaint.media && selectedComplaint.media.length > 0 ? (
                     <div className="relative group overflow-hidden rounded-2xl border border-slate-200 bg-white">
                       <img 
-                        src={selectedComplaint.media || selectedComplaint.media_url || ''} 
+                        src={selectedComplaint.media[0].file_url} 
                         alt="Complaint Media" 
                         className="w-full h-auto max-h-96 object-contain"
                         referrerPolicy="no-referrer"
